@@ -4,6 +4,7 @@ blueprint:
 description: >
   🎯 All-in-one automation for Inovelli Blue switches (ZHA) and Hue Rooms/Zones
 
+<details>
   ✅ Paddle tap → On/Off  
   ✅ Paddle hold/release → Smooth dimming  
   ✅ Side button (button 3) → Cycle Hue scenes (forward/backward)  
@@ -12,7 +13,7 @@ description: >
   ✅ Configurable brightness step (percent)  
   ✅ Double-tap up → Set light to 100% brightness  
   ✅ Double-tap down → Set light to 10% brightness
-
+<details>
 
   domain: automation
 
