@@ -1,18 +1,15 @@
 blueprint:
   name: Hue Paddle Dimming + Scene Cycling (Unified ZHA Event with Sync)
+  description: >
+    🎯 All-in-one automation for Inovelli Blue switches (ZHA) and Hue Rooms/Zones
 
-description: >
-  🎯 All-in-one automation for Inovelli Blue switches (ZHA) and Hue Rooms/Zones
-
-  ✅ Paddle tap → On/Off  
-  ✅ Paddle hold/release → Smooth dimming  
-  ✅ Side button (button 3) → Cycle Hue scenes (forward/backward)  
-  ✅ Light turned on → (optional) activate default scene  
-  ✅ Sync switch and light state via derived input_boolean.sync_<room>  
-  ✅ Configurable brightness step (percent)  
-  ✅ Double-tap up → Set light to 100% brightness  
-  ✅ Double-tap down → Set light to 10% brightness
-
+    ✅ Paddle tap → On/Off  
+    ✅ Paddle hold/release → Smooth dimming  
+    ✅ Side button (button 3) → Cycle Hue scenes (forward/backward)
+    ✅ Configurable off LED color
+    ✅ Light turned on → (optional) activate default scene  
+    ✅ Sync switch and light state via derived input_boolean.sync_<room>  
+    ✅ Configurable brightness step (percent)
 
   domain: automation
 
@@ -40,6 +37,15 @@ description: >
       selector:
         entity:
           domain: script
+
+    switch_led_off_color:
+      name: Switch LED Off Color
+      default: "24"
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
 
     brightness_step:
       name: Brightness Step (%)
@@ -85,11 +91,24 @@ trigger:
     entity_id: !input switch_entity
     id: switch_state_change
 
+  - platform: state 
+    entity_id: !input light_entity
+    id: light_state_change
+
 variables:
   light_entity: !input light_entity
   switch_entity: !input switch_entity
+  switch_device: !input switch_device
+  switch_entity_name: >
+    {{ device_entities(switch_device) 
+       | select('search', 'default_all_led_off_intensity') 
+       | list 
+       | first 
+       | replace('number.', '') 
+       | replace('_default_all_led_off_intensity', '') }}
   room: "{{ light_entity.split('.')[1] }}"
   room_lower: "{{ room | lower }}"
+  switch_led_off_color: !input switch_led_off_color
   dimmer_flag: "input_boolean.dimmer_{{ room_lower }}"
   sync_flag: "input_boolean.sync_{{ room_lower }}"
   scene_index: "input_number.scene_index_{{ room_lower }}"
@@ -116,6 +135,7 @@ variables:
   is_light_on_trigger: "{{ trigger.id == 'light_on_trigger' }}"
   is_light_off_trigger: "{{ trigger.id == 'light_off_trigger' }}"
   is_switch_state_change: "{{ trigger.id == 'switch_state_change' }}"
+  is_light_state_change: "{{ trigger.id == 'light_state_change' }}"
 
 action:
   - choose:
@@ -185,11 +205,34 @@ action:
             target:
               entity_id: "{{ dimmer_flag }}"
 
+      # When sync_flag turns ON, set LED to match room color and brightness
       - conditions: "{{ is_light_on_trigger }}"
         sequence:
           - service: input_boolean.turn_on
             target:
               entity_id: "{{ sync_flag }}"
+          # Get color from light attributes
+          - variables:
+              room_color: >
+                {% set s = states[light_entity] %}
+                {% if 'hs_color' in s.attributes %}
+                  # Map Hue value (0-360) directly to Inovelli range (0-255)
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  # Default warm white
+                  24
+                {% endif %}
+              led_intensity: "{{ states[light_entity].attributes.brightness | default(255) }}"
+          # Set LED color and intensity
+          - service: number.set_value
+            data:
+              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_color"
+              value: "{{ room_color }}"
+          - service: number.set_value
+            data:
+              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_intensity"
+              value: "{{ led_intensity }}"
+          # Optionally activate default scene
           - choose:
               - conditions: "{{ default_scene_enabled and default_scene != '' }}"
                 sequence:
@@ -202,6 +245,15 @@ action:
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ sync_flag }}"
+          # Add LED off color settings  
+          - service: number.set_value
+            data:
+              entity_id: "number.{{ switch_entity_name }}_default_all_led_off_color"
+              value: "{{ switch_led_off_color }}"
+          - service: number.set_value
+            data:  
+              entity_id: "number.{{ switch_entity_name }}_default_all_led_off_intensity" 
+              value: 1
 
       - conditions: "{{ is_switch_state_change }}"
         sequence:
@@ -274,6 +326,30 @@ action:
                   - service: scene.turn_on
                     target:
                       entity_id: "{{ prev_scene }}"
+
+      - conditions: "{{ is_light_state_change and states(light_entity) == 'on' }}"
+        sequence:
+          - variables:
+              room_color: >
+                {% set s = states[light_entity] %}
+                {% if 'hs_color' in s.attributes %}
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
+                {% endif %}
+              led_intensity: >
+                {% set s = states[light_entity] %}
+                {{ ((s.attributes.brightness | default(255)) / 255 * 100) | int }}
+          - service: number.set_value
+            target:
+              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_color"
+            data:
+              value: "{{ room_color }}"
+          - service: number.set_value
+            target:
+              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_intensity"
+            data:
+              value: "{{ led_intensity }}"
 
   - choose:
       - conditions: "{{ states(sync_flag) == 'on' }}"
