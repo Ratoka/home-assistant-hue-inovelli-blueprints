@@ -222,7 +222,7 @@ action:
                   # Default warm white
                   24
                 {% endif %}
-              led_intensity: "{{ states[light_entity].attributes.brightness | default(255) }}"
+              led_intensity: "{{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | round(0) | int }}"
           # Set LED color and intensity
           - service: number.set_value
             data:
