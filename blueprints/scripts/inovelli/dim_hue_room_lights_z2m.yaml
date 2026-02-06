@@ -1,0 +1,61 @@
+blueprint:
+  name: Hue Room Dimmer - Dynamic Up/Down (Z2M)
+  description: >
+    Dims a Hue Room or Zone (light.<room>) up or down while an input_boolean remains on.
+    Uses input_boolean.dimmer_<room> to control the loop and allows user-defined dimming speed.
+    Optimized for Z2M/MQTT integration.
+
+    ➕ Required Helper:
+      - input_boolean.dimmer_<room> (e.g. input_boolean.dimmer_office)
+
+    🛠 Inputs:
+      - room (e.g. Office → controls light.office and input_boolean.dimmer_office)
+      - direction: Up/Down (determines brightness step polarity)
+      - brightness_step: Dimming speed as percent step (default = 5%)
+
+  domain: script
+
+  input:
+    room:
+      name: Room Name
+      description: Used to resolve entity IDs
+      selector:
+        text:
+
+    direction:
+      name: Direction
+      selector:
+        select:
+          options:
+            - Up
+            - Down
+
+    brightness_step:
+      name: Brightness Step (%)
+      description: How much to increase/decrease per tick (1–50%)
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 50
+          step: 1
+          unit_of_measurement: "%"
+
+sequence:
+  - variables:
+      room_lower: "{{ room | lower }}"
+      room_light: "light.{{ room }}"
+      dimming_flag: "input_boolean.dimmer_{{ room_lower }}"
+      step: "{{ brightness_step | int * (1 if direction == 'Up' else -1) }}"
+  - repeat:
+      while:
+        - condition: template
+          value_template: "{{ is_state(dimming_flag, 'on') }}"
+      sequence:
+        - service: light.turn_on
+          data:
+            brightness_step_pct: "{{ step }}"
+          target:
+            entity_id: "{{ room_light }}"
+        - delay: "00:00:0.4"
+mode: restart

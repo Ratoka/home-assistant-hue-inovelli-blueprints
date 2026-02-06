@@ -1,7 +1,7 @@
 blueprint:
-  name: Hue Paddle Dimming + Scene Cycling (Unified ZHA Event with Sync)
+  name: Hue Paddle Dimming + Scene Cycling (Unified Z2M Event with Sync)
   description: >
-    🎯 All-in-one automation for Inovelli Blue switches (ZHA) and Hue Rooms/Zones
+    🎯 All-in-one automation for Inovelli Blue switches (Z2M/MQTT) and Hue Rooms/Zones
 
     ✅ Paddle tap → On/Off  
     ✅ Paddle hold/release → Smooth dimming  
@@ -15,17 +15,17 @@ blueprint:
 
   input:
     switch_device:
-      name: Inovelli Switch (ZHA)
+      name: Inovelli Switch (Z2M)
       selector:
         device:
-          integration: zha
+          integration: mqtt
 
     switch_entity:
       name: Inovelli Switch Entity (the light entity of the switch)
       selector:
         entity:
           domain: light
-          integration: zha
+          integration: mqtt
 
     light_entity:
       name: Light Group (Hue Room or Zone)
@@ -72,10 +72,9 @@ blueprint:
         text:
 
 trigger:
-  - platform: event
-    event_type: zha_event
-    event_data:
-      device_id: !input switch_device
+  - platform: mqtt
+    topic: "zigbee2mqtt/+/action"
+    id: z2m_action
 
   - platform: state
     entity_id: !input light_entity
@@ -101,13 +100,7 @@ variables:
   light_entity: !input light_entity
   switch_entity: !input switch_entity
   switch_device: !input switch_device
-  switch_entity_name: >
-    {{ device_entities(switch_device) 
-       | select('search', 'default_all_led_off_intensity') 
-       | list 
-       | first 
-       | replace('number.', '') 
-       | replace('_default_all_led_off_intensity', '') }}
+  switch_entity_name: "{{ switch_entity.split('.')[1] }}"
   room: "{{ light_entity.split('.')[1] }}"
   room_lower: "{{ room | lower }}"
   switch_led_off_color: !input switch_led_off_color
@@ -120,73 +113,29 @@ variables:
   default_scene_enabled: !input default_scene_enabled
   default_scene: !input default_scene
   brightness_step: !input brightness_step
-  command: "{{ trigger.event.data.command if trigger.platform == 'event' else '' }}"
+  action: "{{ trigger.payload if trigger.platform == 'mqtt' else '' }}"
   direction: >
-    {% if 'button_1' in command %}Down
-    {% elif 'button_2' in command %}Up
+    {% if action == 'down_held' %}Down
+    {% elif action == 'up_held' %}Up
     {% else %}unknown{% endif %}
-  is_hold: "{{ 'hold' in command }}"
-  is_release: "{{ 'release' in command }}"
-  is_button_1_press: "{{ command == 'button_1_press' }}"
-  is_button_1_double: "{{ command == 'button_1_double' }}"
-  is_button_2_press: "{{ command == 'button_2_press' }}"
-  is_button_2_double: "{{ command == 'button_2_double' }}"
-  is_button_3_press: "{{ command == 'button_3_press' }}"
-  is_button_3_hold: "{{ command == 'button_3_hold' }}"
-  is_button_3_double: "{{ command == 'button_3_double' }}"
+  is_hold: "{{ action in ['up_held', 'down_held'] }}"
+  is_release: "{{ action in ['up_release', 'down_release'] }}"
+  is_up_double: "{{ action == 'up_double' }}"
+  is_down_double: "{{ action == 'down_double' }}"
+  is_button_3_press: "{{ action == 'config_single' }}"
+  is_button_3_hold: "{{ action == 'config_held' }}"
   is_light_on_trigger: "{{ trigger.id == 'light_on_trigger' }}"
   is_light_off_trigger: "{{ trigger.id == 'light_off_trigger' }}"
   is_switch_state_change: "{{ trigger.id == 'switch_state_change' }}"
   is_light_state_change: "{{ trigger.id == 'light_state_change' }}"
 
 action:
+  - service: system_log.write
+    data:
+      level: debug
+      message: "Z2M Action: action='{{ action }}' | hold={{ is_hold }} | direction={{ direction }} | button3_press={{ is_button_3_press }} | button3_hold={{ is_button_3_hold }}"
+
   - choose:
-      - conditions: "{{ is_button_1_press }}"
-        sequence:
-          - service: input_boolean.turn_off
-            target:
-              entity_id: "{{ sync_flag }}"
-
-      - conditions: "{{ is_button_2_press }}"
-        sequence:
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ sync_flag }}"
-
-      - conditions: "{{ is_button_1_double }}"
-        sequence:
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ sync_flag }}"
-          - service: light.turn_on
-            target:
-              entity_id: "{{ light_entity }}"
-            data:
-              brightness_pct: 10
-          - choose:
-              - conditions: "{{ states(switch_entity) != 'on' }}"
-                sequence:
-                  - service: light.turn_on
-                    target:
-                      entity_id: "{{ switch_entity }}"
-
-      - conditions: "{{ is_button_2_double }}"
-        sequence:
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ sync_flag }}"
-          - service: light.turn_on
-            target:
-              entity_id: "{{ light_entity }}"
-            data:
-              brightness_pct: 100
-          - choose:
-              - conditions: "{{ states(switch_entity) != 'on' }}"
-                sequence:
-                  - service: light.turn_on
-                    target:
-                      entity_id: "{{ switch_entity }}"
-
       - conditions: "{{ is_hold and direction in ['Up', 'Down'] }}"
         sequence:
           - service: input_boolean.turn_on
@@ -207,7 +156,23 @@ action:
             target:
               entity_id: "{{ dimmer_flag }}"
 
-      # When sync_flag turns ON, set LED to match room color and brightness
+      - conditions: "{{ is_down_double }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ light_entity }}"
+            data:
+              brightness_pct: 10
+
+      - conditions: "{{ is_up_double }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ light_entity }}"
+            data:
+              brightness_pct: 100
+
+      # When light turns ON, sync switch and set LED
       - conditions: "{{ is_light_on_trigger }}"
         sequence:
           - service: input_boolean.turn_on
@@ -225,15 +190,15 @@ action:
                   24
                 {% endif %}
               led_intensity: "{{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | round(0) | int }}"
-          # Set LED color and intensity
-          - service: number.set_value
+          # Set LED color and intensity via MQTT for Z2M devices
+          - service: mqtt.publish
             data:
-              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_color"
-              value: "{{ room_color }}"
-          - service: number.set_value
-            data:
-              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_intensity"
-              value: "{{ led_intensity }}"
+              topic: "zigbee2mqtt/{{ switch_entity_name }}/set"
+              payload: >
+                {
+                  "led_color_on": {{ room_color }},
+                  "led_brightness_on": {{ led_intensity }}
+                }
           # Optionally activate default scene
           - choose:
               - conditions: "{{ default_scene_enabled and default_scene != '' }}"
@@ -247,15 +212,15 @@ action:
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ sync_flag }}"
-          # Add LED off color settings  
-          - service: number.set_value
+          # Add LED off color settings via MQTT
+          - service: mqtt.publish
             data:
-              entity_id: "number.{{ switch_entity_name }}_default_all_led_off_color"
-              value: "{{ switch_led_off_color }}"
-          - service: number.set_value
-            data:  
-              entity_id: "number.{{ switch_entity_name }}_default_all_led_off_intensity" 
-              value: 1
+              topic: "zigbee2mqtt/{{ switch_entity_name }}/set"
+              payload: >
+                {
+                  "led_color_off": {{ switch_led_off_color }},
+                  "led_brightness_off": 1
+                }
 
       - conditions: "{{ is_switch_state_change }}"
         sequence:
@@ -342,16 +307,14 @@ action:
               led_intensity: >
                 {% set s = states[light_entity] %}
                 {{ ((s.attributes.brightness | default(255)) / 255 * 100) | int }}
-          - service: number.set_value
-            target:
-              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_color"
+          - service: mqtt.publish
             data:
-              value: "{{ room_color }}"
-          - service: number.set_value
-            target:
-              entity_id: "number.{{ switch_entity_name }}_default_all_led_on_intensity"
-            data:
-              value: "{{ led_intensity }}"
+              topic: "zigbee2mqtt/{{ switch_entity_name }}/set"
+              payload: >
+                {
+                  "led_color_on": {{ room_color }},
+                  "led_brightness_on": {{ led_intensity }}
+                }
 
   - choose:
       - conditions: "{{ states(sync_flag) == 'on' }}"

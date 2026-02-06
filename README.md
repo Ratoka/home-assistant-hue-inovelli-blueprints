@@ -1,11 +1,19 @@
-[![Import Automation Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomations%2Finovelli%2Fhue_dimmer_zha.yaml) **Automation Blueprint**
+[![Import Automation Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomations%2Finovelli%2Fhue_dimmer_zha.yaml) **ZHA Automation Blueprint**
+
+[![Import Automation Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomations%2Finovelli%2Fhue_dimmer_z2m.yaml) **Z2M Automation Blueprint**
 
 [![Import Script Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscripts%2Finovelli%2Fdim_hue_room_lights.yaml) **Script Blueprint**
+
+[![Import Script Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscripts%2Finovelli%2Fdim_hue_room_lights_z2m.yaml) **Script Blueprint Z2M**
 
 
 # 🏠 Home Assistant Inovelli Hue Blueprints
 
-This repository contains **dynamic, reusable blueprints** for integrating Inovelli Blue Series dimmers (via ZHA) with Philips Hue lights and scenes. These automations are designed for **state-aware, adaptive lighting control** that evolves with your Hue setup.
+This repository contains **dynamic, reusable blueprints** for integrating Inovelli Blue Series dimmers with Philips Hue lights and scenes. These automations are designed for **state-aware, adaptive lighting control** that evolves with your Hue setup.
+
+**Available for:**
+- **ZHA Integration** (via `hue_dimmer_zha.yaml` and `dim_hue_room_lights_zha.yaml`)
+- **Zigbee2MQTT Integration** (via `hue_dimmer_z2m.yaml` and `dim_hue_room_lights_z2m.yaml`) - Works with the default `zigbee2mqtt` MQTT topic
 
 ---
 
@@ -114,8 +122,9 @@ Use this helper to store values like the current scene index or delay intervals.
 
 ## 📁 Included Blueprints
 
-### 🔧 Hue Paddle Dimming + Scene Cycling (ZHA Event)
-- **Path**: `blueprints/automation/inovelli/hue_dimmer_zha_unified.yaml`
+### 🔧 Hue Paddle Dimming + Scene Cycling (ZHA)
+- **Path**: `blueprints/automation/inovelli/hue_dimmer_zha.yaml`
+- **Integration**: ZHA
 - **Handles**:
   - Paddle dimming (start/stop)
   - Scene cycling (forward/back)
@@ -123,12 +132,19 @@ Use this helper to store values like the current scene index or delay intervals.
   - Default scene activation
   - Detailed logging
 
+### 🔧 Hue Paddle Dimming + Scene Cycling (Zigbee2MQTT)
+- **Path**: `blueprints/automation/inovelli/hue_dimmer_z2m.yaml`
+- **Integration**: Zigbee2MQTT (MQTT)
+- **Note**: Works with the default `zigbee2mqtt` MQTT topic
+- **Functionality**: Same as ZHA version - all features identical
+
 ### 🎚️ Hue Room Dimmer - Dynamic Up/Down
-- **Path**: `blueprints/script/inovelli/dim_hue_room_lights.yaml`
+- **Path**: `blueprints/script/inovelli/dim_hue_room_lights.yaml` (or `dim_hue_room_lights_z2m.yaml`)
 - **Handles**:
   - Smooth dimming loop
   - Customizable brightness step
   - Parameterized by room, direction, and step
+- **Note**: Script blueprint works with both ZHA and Z2M automations
 
 ---
 
