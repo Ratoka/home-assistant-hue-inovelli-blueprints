@@ -120,6 +120,51 @@ Use this helper to store values like the current scene index or delay intervals.
    - **Unit of measurement**: Optional (e.g., none or "index")
 4. Click **Create**.
 
+---
+
+## 🔌 Z2M Setup: MQTT Sensors (Required for Zigbee2MQTT)
+
+The Z2M automation requires an **MQTT sensor** per switch to listen to your switch's actions. This ensures only the relevant automation triggers, not all instances.
+
+### 📝 Create MQTT Sensors
+
+Add this to your `configuration.yaml` or in a separate YAML file (e.g., `automations.yaml` included by `!include`):
+
+```yaml
+mqtt:
+  - sensor:
+      # MQTT sensor for Kitchen Switch (adjust device name)
+      - name: "kitchen_switch_action"
+        state_topic: "zigbee2mqtt/kitchen_switch/action"
+
+      # MQTT sensor for Living Room Switch (adjust device name)
+      - name: "living_room_switch_action"
+        state_topic: "zigbee2mqtt/living_room_switch/action"
+
+      # MQTT sensor for Office FanLight Switch (adjust device name)
+      - name: "office_switch_fanlight_action"
+        state_topic: "zigbee2mqtt/Office_Switch_FanLight/action"
+```
+
+### 🔑 Key Points:
+- **Device name casing**: Match the exact Z2M device name casing (e.g., `Office_Switch_FanLight`)
+- **MQTT topic pattern**: `zigbee2mqtt/<your_device_name>/action`
+- **One sensor per switch**: Create an MQTT sensor for each Inovelli switch you want to control
+- **Entity name format**: The sensor will be automatically named `sensor.<name>` (based on the name field)
+- **Friendly name**: The `name:` field becomes the entity name. For example, `name: "kitchen_switch_action"` creates `sensor.kitchen_switch_action`
+
+### ✅ Verify MQTT Sensors Work
+
+1. Open **Developer Tools > States** in Home Assistant
+2. Search for your sensor (e.g., `sensor.kitchen_switch_action`)
+3. Press a button on your Inovelli switch
+4. The sensor state should update with the action (e.g., `up_held`, `down_double`, `config_single`)
+
+If it doesn't update, check:
+- Z2M device name matches your MQTT topic exactly (including capitalization)
+- MQTT integration is working and enabled
+- Z2M is publishing to the correct topic (check with MQTT Explorer)
+
 ## 📁 Included Blueprints
 
 ### 🔧 Hue Paddle Dimming + Scene Cycling (ZHA)
@@ -135,7 +180,7 @@ Use this helper to store values like the current scene index or delay intervals.
 ### 🔧 Hue Paddle Dimming + Scene Cycling (Zigbee2MQTT)
 - **Path**: `blueprints/automation/inovelli/hue_dimmer_z2m.yaml`
 - **Integration**: Zigbee2MQTT (MQTT)
-- **Note**: Works with the default `zigbee2mqtt` MQTT topic
+- **Requirements**: Template sensor (see Z2M Setup section below)
 - **Functionality**: Same as ZHA version - all features identical
 
 ### 🎚️ Hue Room Dimmer - Dynamic Up/Down

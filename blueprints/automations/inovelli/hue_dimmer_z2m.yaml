@@ -11,14 +11,21 @@ blueprint:
     ✅ Sync switch and light state via derived input_boolean.sync_<room>  
     ✅ Configurable brightness step (percent)  
 
+    **🔴 Z2M ONLY**: This blueprint requires an MQTT sensor per switch. See README for setup instructions.
+    The MQTT sensor listens to your specific Z2M topic (e.g., `zigbee2mqtt/<device_name>/action`) and must be configured in your `configuration.yaml` before using this blueprint.
+
   domain: automation
 
   input:
-    switch_device:
-      name: Inovelli Switch (Z2M)
+    z2m_action_sensor:
+      name: Z2M Action Sensor (MQTT)
+      description: >
+        Select the MQTT sensor entity that monitors your switch's Z2M actions.
+        This sensor should subscribe to `zigbee2mqtt/<device_name>/action` topic.
+        Example: `sensor.kitchen_switch_action`
       selector:
-        device:
-          integration: mqtt
+        entity:
+          domain: sensor
 
     switch_entity:
       name: Inovelli Switch Entity (the light entity of the switch)
@@ -72,8 +79,8 @@ blueprint:
         text:
 
 trigger:
-  - platform: mqtt
-    topic: "zigbee2mqtt/+/action"
+  - platform: state
+    entity_id: !input z2m_action_sensor
     id: z2m_action
 
   - platform: state
@@ -99,7 +106,6 @@ trigger:
 variables:
   light_entity: !input light_entity
   switch_entity: !input switch_entity
-  switch_device: !input switch_device
   switch_entity_name: "{{ switch_entity.split('.')[1] }}"
   room: "{{ light_entity.split('.')[1] }}"
   room_lower: "{{ room | lower }}"
@@ -113,7 +119,7 @@ variables:
   default_scene_enabled: !input default_scene_enabled
   default_scene: !input default_scene
   brightness_step: !input brightness_step
-  action: "{{ trigger.payload if trigger.platform == 'mqtt' else '' }}"
+  action: "{{ states(trigger.entity_id) if trigger.id == 'z2m_action' else '' }}"
   direction: >
     {% if action == 'down_held' %}Down
     {% elif action == 'up_held' %}Up
