@@ -26,6 +26,14 @@ blueprint:
       selector:
         entity:
           domain: sensor
+          integration: mqtt
+
+    mqtt_entity:
+      name: Inovelli Switch Device
+      selector:
+        device:
+          integration: mqtt
+          manufacturer: Inovelli
 
     switch_entity:
       name: Inovelli Switch Entity (the light entity of the switch)
@@ -81,6 +89,18 @@ blueprint:
 trigger:
   - platform: state
     entity_id: !input z2m_action_sensor
+    to:
+      - up_held
+      - down_held
+      - up_release
+      - down_release
+      - up_single
+      - up_double
+      - down_single
+      - down_double
+      - config_single
+      - config_held
+      - config_release
     id: z2m_action
 
   - platform: state
@@ -104,9 +124,10 @@ trigger:
     id: light_state_change
 
 variables:
-  light_entity: !input light_entity
+  mqtt_entity: !input mqtt_entity
   switch_entity: !input switch_entity
-  switch_entity_name: "{{ switch_entity.split('.')[1] }}"
+  z2m_action_sensor: !input z2m_action_sensor
+  light_entity: !input light_entity
   room: "{{ light_entity.split('.')[1] }}"
   room_lower: "{{ room | lower }}"
   switch_led_off_color: !input switch_led_off_color
@@ -119,7 +140,7 @@ variables:
   default_scene_enabled: !input default_scene_enabled
   default_scene: !input default_scene
   brightness_step: !input brightness_step
-  action: "{{ states(trigger.entity_id) if trigger.id == 'z2m_action' else '' }}"
+  action: "{{ trigger.to_state.state if trigger.id == 'z2m_action' else '' }}"
   direction: >
     {% if action == 'down_held' %}Down
     {% elif action == 'up_held' %}Up
@@ -199,7 +220,7 @@ action:
           # Set LED color and intensity via MQTT for Z2M devices
           - service: mqtt.publish
             data:
-              topic: "zigbee2mqtt/{{ switch_entity_name }}/set"
+              topic: "zigbee2mqtt/{{ mqtt_entity }}/set"
               payload: >
                 {
                   "led_color_on": {{ room_color }},
@@ -221,7 +242,7 @@ action:
           # Add LED off color settings via MQTT
           - service: mqtt.publish
             data:
-              topic: "zigbee2mqtt/{{ switch_entity_name }}/set"
+              topic: "zigbee2mqtt/{{ mqtt_entity }}/set"
               payload: >
                 {
                   "led_color_off": {{ switch_led_off_color }},
@@ -249,13 +270,13 @@ action:
                 sequence:
                   - service: system_log.write
                     data:
-                      level: error
+                      level: debug
                       message: "❌ No scenes found for '{{ room_lower }}'"
               - conditions: "{{ states(scene_index) == 'unknown' }}"
                 sequence:
                   - service: system_log.write
                     data:
-                      level: error
+                      level: debug
                       message: "❌ Missing input_number: {{ scene_index }}"
               - conditions: []
                 sequence:
@@ -263,13 +284,24 @@ action:
                       current: "{{ states(scene_index) | int(0) }}"
                       next: "{{ (current + 1) % (available_scenes | length) }}"
                       next_scene: "{{ available_scenes[next] }}"
+                  - service: system_log.write
+                    data:
+                      level: debug
+                      message: "🔄 FORWARD: current={{ current }} | next={{ next }} | max_scenes={{ available_scenes | length }} | next_scene={{ next_scene }}"
                   - service: input_number.set_value
                     data:
                       entity_id: "{{ scene_index }}"
                       value: "{{ next }}"
+                  - wait_template: "{{ states(scene_index) | int(0) == next }}"
+                    timeout: 
+                      seconds: 2
                   - service: scene.turn_on
                     target:
                       entity_id: "{{ next_scene }}"
+                  - service: system_log.write
+                    data:
+                      level: debug
+                      message: "✅ FORWARD COMPLETE: Activated {{ next_scene }}"
 
       - conditions: "{{ is_button_3_hold }}"
         sequence:
@@ -278,13 +310,13 @@ action:
                 sequence:
                   - service: system_log.write
                     data:
-                      level: error
+                      level: debug
                       message: "❌ No scenes found for '{{ room_lower }}'"
               - conditions: "{{ states(scene_index) == 'unknown' }}"
                 sequence:
                   - service: system_log.write
                     data:
-                      level: error
+                      level: debug
                       message: "❌ Missing input_number: {{ scene_index }}"
               - conditions: []
                 sequence:
@@ -292,13 +324,24 @@ action:
                       current: "{{ states(scene_index) | int(0) }}"
                       prev: "{{ (current - 1) % (available_scenes | length) }}"
                       prev_scene: "{{ available_scenes[prev] }}"
+                  - service: system_log.write
+                    data:
+                      level: debug
+                      message: "🔄 BACKWARD: current={{ current }} | prev={{ prev }} | max_scenes={{ available_scenes | length }} | prev_scene={{ prev_scene }}"
                   - service: input_number.set_value
                     data:
                       entity_id: "{{ scene_index }}"
                       value: "{{ prev }}"
+                  - wait_template: "{{ states(scene_index) | int(0) == prev }}"
+                    timeout:
+                      seconds: 2
                   - service: scene.turn_on
                     target:
                       entity_id: "{{ prev_scene }}"
+                  - service: system_log.write
+                    data:
+                      level: debug
+                      message: "✅ BACKWARD COMPLETE: Activated {{ prev_scene }}"
 
       - conditions: "{{ is_light_state_change and states(light_entity) == 'on' }}"
         sequence:
@@ -315,7 +358,7 @@ action:
                 {{ ((s.attributes.brightness | default(255)) / 255 * 100) | int }}
           - service: mqtt.publish
             data:
-              topic: "zigbee2mqtt/{{ switch_entity_name }}/set"
+              topic: "zigbee2mqtt/{{ mqtt_entity }}/set"
               payload: >
                 {
                   "led_color_on": {{ room_color }},
