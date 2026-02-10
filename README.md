@@ -2,7 +2,7 @@
 
 [![Import Automation Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fautomations%2Finovelli%2Fhue_dimmer_z2m.yaml) **Z2M Automation Blueprint**
 
-[![Import Script Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscripts%2Finovelli%2Fdim_hue_room_lights_zha.yaml) **Script Blueprint**
+[![Import Script Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscripts%2Finovelli%2Fdim_hue_room_lights_zha.yaml) **Script Blueprint ZHA**
 
 [![Import Script Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FRatoka%2Fhome-assistant-hue-inovelli-blueprints%2Fblob%2Fmain%2Fblueprints%2Fscripts%2Finovelli%2Fdim_hue_room_lights_z2m.yaml) **Script Blueprint Z2M**
 
