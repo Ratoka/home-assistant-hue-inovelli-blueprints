@@ -1,5 +1,5 @@
 blueprint:
-  name: Hue Room Dimmer - Dynamic Up/Down
+  name: Hue Room Dimmer - Dynamic Up/Down (ZHA)
   description: >
     Dims a Hue Room or Zone (light.<room>) up or down while an input_boolean remains on.
     Uses input_boolean.dimmer_<room> to control the loop and allows user-defined dimming speed.
