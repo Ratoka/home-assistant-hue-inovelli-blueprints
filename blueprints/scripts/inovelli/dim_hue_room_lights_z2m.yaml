@@ -1,6 +1,6 @@
 blueprint:
   name: Hue Room Dimmer - Dynamic Up/Down (Z2M)
-  description: >
+  description: |-
     Dims a Hue Room or Zone (light.<room>) up or down while an input_boolean remains on.
     Uses input_boolean.dimmer_<room> to control the loop and allows user-defined dimming speed.
     Optimized for Z2M/MQTT integration.

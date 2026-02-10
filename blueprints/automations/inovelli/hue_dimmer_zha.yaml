@@ -1,6 +1,6 @@
 blueprint:
   name: Hue Paddle Dimming + Scene Cycling (Unified ZHA Event with Sync)
-  description: >
+  description: |-
       🎯 All-in-one automation for Inovelli Blue switches (ZHA) and Hue Rooms/Zones
 
       ✅ Paddle tap → On/Off  

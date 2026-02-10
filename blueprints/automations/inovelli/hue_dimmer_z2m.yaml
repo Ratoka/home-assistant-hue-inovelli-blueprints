@@ -1,18 +1,18 @@
 blueprint:
   name: Hue Paddle Dimming + Scene Cycling (Unified Z2M Event with Sync)
-  description: >
-      🎯 All-in-one automation for Inovelli Blue switches (Z2M/MQTT) and Hue Rooms/Zones
+  description: |-
+    🎯 All-in-one automation for Inovelli Blue switches (Z2M/MQTT) and Hue Rooms/Zones
 
-      ✅ Paddle tap → On/Off  
-      ✅ Paddle hold/release → Smooth dimming  
-      ✅ Side button (button 3) → Cycle Hue scenes (forward/backward)  
-      ✅ Configurable off LED color  
-      ✅ Light turned on → (optional) activate default scene  
-      ✅ Sync switch and light state via derived input_boolean.sync_<room>  
-      ✅ Configurable brightness step (percent)  
+    ✅ Paddle tap → On/Off
+    ✅ Paddle hold/release → Smooth dimming
+    ✅ Side button (button 3) → Cycle Hue scenes (forward/backward)
+    ✅ Configurable off LED color
+    ✅ Light turned on → (optional) activate default scene
+    ✅ Sync switch and light state via derived input_boolean.sync_<room>
+    ✅ Configurable brightness step (percent)
 
-      This blueprint requires an MQTT sensor per switch. See README for setup instructions.
-      The MQTT sensor listens to your specific Z2M topic (e.g., `zigbee2mqtt/<device_name>/action`) and must be configured in your `configuration.yaml` before using this blueprint.
+    This blueprint requires an MQTT sensor per switch. See README for setup instructions.
+    The MQTT sensor listens to your specific Z2M topic (e.g., `zigbee2mqtt/<device_name>/action`) and must be configured in your `configuration.yaml` before using this blueprint.
 
   domain: automation
 
