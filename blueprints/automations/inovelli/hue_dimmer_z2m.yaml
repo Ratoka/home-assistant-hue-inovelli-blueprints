@@ -1,71 +1,73 @@
 blueprint:
-  name: Hue Paddle Dimming + Scene Cycling (Unified Z2M Event with Sync)
+  name: Hue Paddle Dimming + Scene Cycling (Z2M)
   description: |-
-    🎯 All-in-one automation for Inovelli Blue switches (Z2M/MQTT) and Hue Rooms/Zones
+    All-in-one automation for Inovelli Blue switches (Zigbee2MQTT) and Hue rooms/zones.
 
-    ✅ Paddle tap → On/Off
-    ✅ Paddle hold/release → Smooth dimming
-    ✅ Side button (button 3) → Cycle Hue scenes (forward/backward)
-    ✅ Configurable off LED color
-    ✅ Light turned on → (optional) activate default scene
-    ✅ Sync switch and light state via derived input_boolean.sync_<room>
-    ✅ Configurable brightness step (percent)
+    ✅ No input_boolean helpers required
+    ✅ No separate script blueprint required
+    ✅ Tap up/down → On/Off
+    ✅ Double tap up/down → 100% / 10% brightness
+    ✅ Hold up/down → Smooth inline dimming (no external script needed)
+    ✅ Config button → Cycle Hue scenes forward/backward
+    ✅ LED color/intensity reflects light state
+    ✅ Bidirectional sync: Hue room ↔ Inovelli switch LED
+    ✅ Optional: activate a default scene when turning on
+    ✅ Optional: scene cycling (requires one input_number helper)
 
-    This blueprint requires an MQTT sensor per switch. See README for setup instructions.
-    The MQTT sensor listens to your specific Z2M topic (e.g., `zigbee2mqtt/<device_name>/action`) and must be configured in your `configuration.yaml` before using this blueprint.
+    Requires one custom MQTT sensor per switch (expire_after: 1) for reliable action detection.
+    See the README for the sensor configuration snippet.
+
+    Scene cycling is optional and requires one input_number helper (min: 0, max: 99, step: 1).
+    Leave the Scene Index Helper unselected to disable scene cycling entirely.
 
   domain: automation
 
   input:
     z2m_action_sensor:
-      name: Z2M Action Sensor (MQTT)
+      name: Z2M Action Sensor
       description: >
-        Select the MQTT sensor entity that monitors your switch's Z2M actions.
-        This sensor should subscribe to `zigbee2mqtt/<device_name>/action` topic.
-        Example: `sensor.kitchen_switch_action`
+        The MQTT sensor that reports your switch's button actions.
+        Recommended: create a custom MQTT sensor in your configuration.yaml with expire_after: 1.
+        This is required for repeated presses of the same action (e.g., config_single twice)
+        to register correctly. See README for the sensor configuration snippet.
+        The sensor is typically named sensor.<device_name>_action (e.g., sensor.kitchen_switch_action).
+        Alternatively the Z2M HA integration may auto-create this sensor, but without expire_after
+        repeated same-action presses will not re-trigger the automation.
       selector:
         entity:
           domain: sensor
           integration: mqtt
 
-    mqtt_entity:
-      name: Inovelli Switch Device
-      selector:
-        device:
-          integration: mqtt
-          manufacturer: Inovelli
-
     switch_entity:
-      name: Inovelli Switch Entity (the light entity of the switch)
+      name: Inovelli Switch Light Entity
+      description: The light entity of the Inovelli switch (controls the LED bar on/off state).
       selector:
         entity:
           domain: light
           integration: mqtt
 
     light_entity:
-      name: Light Group (Hue Room or Zone)
+      name: Hue Light Group
+      description: The Hue room or zone light group to control.
       selector:
         entity:
           domain: light
           integration: hue
 
-    dimming_script:
-      name: Dimming Script
+    z2m_device_name:
+      name: Z2M Device Name
+      description: >
+        The friendly name of your switch in Zigbee2MQTT — used to set LED colors via MQTT.
+        Find it in the Zigbee2MQTT dashboard (the name shown in the device list).
+        ⚠️ Case-sensitive — must match exactly (e.g., kitchen_switch not Kitchen_Switch).
+        Tip: it is usually the same as your switch light entity name without the domain
+        (e.g., if your entity is light.kitchen_switch, try kitchen_switch).
       selector:
-        entity:
-          domain: script
-
-    switch_led_off_color:
-      name: Switch LED Off Color
-      default: "24"
-      selector:
-        number:
-          min: 0
-          max: 255
-          step: 1
+        text:
 
     brightness_step:
-      name: Brightness Step (%)
+      name: Dimming Speed (%)
+      description: Brightness change per tick while holding the paddle. Lower = slower dimming.
       default: 10
       selector:
         number:
@@ -74,326 +76,384 @@ blueprint:
           step: 1
           unit_of_measurement: "%"
 
+    switch_led_off_color:
+      name: LED Color When Off
+      description: Inovelli LED color value (0–255) shown when the light is off. 24 = warm white.
+      default: 24
+      selector:
+        number:
+          min: 0
+          max: 255
+          step: 1
+
+    scene_index_helper:
+      name: Scene Index Helper (Optional — enables scene cycling)
+      description: >
+        To enable scene cycling with the config button, first create an input_number helper
+        (Settings → Helpers → Add → Number, min: 0, max: 99, step: 1), then select it here.
+        Leave unselected to disable scene cycling entirely.
+        Scenes are discovered automatically by matching scene.<room>_* where room is derived
+        from your Hue light group entity name (e.g., light.bedroom → scene.bedroom_*).
+      default: ""
+      selector:
+        entity:
+          domain: input_number
+
     default_scene_enabled:
-      name: Enable Default Scene
+      name: Activate Default Scene on Turn On
       default: false
       selector:
         boolean:
 
     default_scene:
       name: Default Scene
+      description: >
+        Scene to activate when the light group turns on (only used if enabled above).
+        Only Hue scenes are shown. Hue scenes follow the pattern scene.<room>_<name>
+        (e.g., scene.bedroom_relax). Pick one that matches your Hue light group.
+        Note: HA blueprint selectors cannot dynamically filter scenes to only the selected room —
+        all Hue scenes are shown, so choose carefully.
       default: ""
       selector:
-        text:
+        entity:
+          domain: scene
+          integration: hue
 
 trigger:
+  # Z2M button/paddle actions from the action sensor.
+  # not_from is intentionally omitted: sensors with expire_after: 1 transition FROM
+  # unavailable each press, and that transition must be allowed to fire the trigger.
   - platform: state
     entity_id: !input z2m_action_sensor
     to:
+      - up_single
+      - down_single
       - up_held
       - down_held
       - up_release
       - down_release
-      - up_single
       - up_double
-      - down_single
       - down_double
       - config_single
       - config_held
-      - config_release
     id: z2m_action
 
+  # Light state changes — used for bidirectional sync
   - platform: state
     entity_id: !input light_entity
     from: "off"
     to: "on"
-    id: light_on_trigger
+    id: light_on
 
   - platform: state
     entity_id: !input light_entity
     from: "on"
     to: "off"
-    id: light_off_trigger
+    id: light_off
+
+  # Switch entity state changes — used for bidirectional sync
+  - platform: state
+    entity_id: !input switch_entity
+    from: "off"
+    to: "on"
+    id: switch_on
 
   - platform: state
     entity_id: !input switch_entity
-    id: switch_state_change
+    from: "on"
+    to: "off"
+    id: switch_off
 
-  - platform: state 
-    entity_id: !input light_entity
-    id: light_state_change
+condition:
+  # For Z2M actions: only proceed if the action is fresh (< 30s).
+  # This prevents stale actions from re-triggering after a HA restart.
+  - condition: or
+    conditions:
+      - condition: template
+        value_template: "{{ trigger.id != 'z2m_action' }}"
+      - condition: template
+        value_template: "{{ (now() - trigger.to_state.last_changed).total_seconds() < 30 }}"
 
 variables:
-  mqtt_entity: !input mqtt_entity
-  switch_entity: !input switch_entity
-  z2m_action_sensor: !input z2m_action_sensor
   light_entity: !input light_entity
-  room: "{{ light_entity.split('.')[1] }}"
-  room_lower: "{{ room | lower }}"
+  switch_entity: !input switch_entity
+  z2m_device_name: !input z2m_device_name
   switch_led_off_color: !input switch_led_off_color
-  dimmer_flag: "input_boolean.dimmer_{{ room_lower }}"
-  sync_flag: "input_boolean.sync_{{ room_lower }}"
-  scene_index: "input_number.scene_index_{{ room_lower }}"
+  brightness_step: !input brightness_step
+  scene_index_helper: !input scene_index_helper
+  default_scene_enabled: !input default_scene_enabled
+  default_scene: !input default_scene
+  # Derive room name from the light entity for scene discovery (e.g. light.bedroom → bedroom)
+  room_lower: "{{ light_entity.split('.')[1] | lower }}"
   available_scenes: >
     {% set prefix = 'scene.' ~ room_lower ~ '_' %}
     {{ states.scene | map(attribute='entity_id') | select('search', prefix) | list | sort }}
-  default_scene_enabled: !input default_scene_enabled
-  default_scene: !input default_scene
-  brightness_step: !input brightness_step
+  # Current action (empty string for non-button triggers)
   action: "{{ trigger.to_state.state if trigger.id == 'z2m_action' else '' }}"
-  direction: >
-    {% if action == 'down_held' %}Down
-    {% elif action == 'up_held' %}Up
-    {% else %}unknown{% endif %}
-  is_hold: "{{ action in ['up_held', 'down_held'] }}"
-  is_release: "{{ action in ['up_release', 'down_release'] }}"
-  is_up_double: "{{ action == 'up_double' }}"
-  is_down_double: "{{ action == 'down_double' }}"
-  is_button_3_press: "{{ action == 'config_single' }}"
-  is_button_3_hold: "{{ action == 'config_held' }}"
-  is_light_on_trigger: "{{ trigger.id == 'light_on_trigger' }}"
-  is_light_off_trigger: "{{ trigger.id == 'light_off_trigger' }}"
-  is_switch_state_change: "{{ trigger.id == 'switch_state_change' }}"
-  is_light_state_change: "{{ trigger.id == 'light_state_change' }}"
+  # Dimming direction and signed step (+/- brightness_step).
+  # Single-line template avoids YAML block scalar whitespace artifacts.
+  direction: "{% if action == 'down_held' %}Down{% elif action == 'up_held' %}Up{% else %}unknown{% endif %}"
+  brightness_step_signed: "{{ brightness_step | int * (1 if direction == 'Up' else -1) }}"
 
 action:
-  - service: system_log.write
-    data:
-      level: debug
-      message: "Z2M Action: action='{{ action }}' | hold={{ is_hold }} | direction={{ direction }} | button3_press={{ is_button_3_press }} | button3_hold={{ is_button_3_hold }}"
-
   - choose:
-      - conditions: "{{ is_hold and direction in ['Up', 'Down'] }}"
-        sequence:
-          - service: input_boolean.turn_on
-            target:
-              entity_id: "{{ dimmer_flag }}"
-          - service: script.turn_on
-            target:
-              entity_id: !input dimming_script
-            data:
-              variables:
-                room: "{{ room }}"
-                direction: "{{ direction }}"
-                brightness_step: "{{ brightness_step }}"
 
-      - conditions: "{{ is_release }}"
-        sequence:
-          - service: input_boolean.turn_off
-            target:
-              entity_id: "{{ dimmer_flag }}"
-
-      - conditions: "{{ is_down_double }}"
+      # -------------------------------------------------------------------------
+      # TAP UP: Turn on the Hue light and switch.
+      # The light_on trigger handles LED update, default scene, and switch sync.
+      # Explicit switch turn-on here covers the case where the light was already on.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action == 'up_single' }}"
         sequence:
           - service: light.turn_on
             target:
               entity_id: "{{ light_entity }}"
-            data:
-              brightness_pct: 10
+          - service: light.turn_on
+            target:
+              entity_id: "{{ switch_entity }}"
 
-      - conditions: "{{ is_up_double }}"
+      # -------------------------------------------------------------------------
+      # TAP DOWN: Turn off the Hue light and switch, update LED to off state.
+      # LED is set before switch to ensure it runs even if mode:restart
+      # interrupts the sequence (the light_off handler also covers this).
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action == 'down_single' }}"
+        sequence:
+          - service: light.turn_off
+            target:
+              entity_id: "{{ light_entity }}"
+          - service: mqtt.publish
+            data:
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+              payload: >
+                {
+                  "ledColorWhenOff": {{ switch_led_off_color }},
+                  "ledIntensityWhenOff": 1
+                }
+          - service: light.turn_off
+            target:
+              entity_id: "{{ switch_entity }}"
+
+      # -------------------------------------------------------------------------
+      # DOUBLE TAP UP: Set brightness to 100%.
+      # LED intensity is hardcoded to 100 for immediate feedback.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action == 'up_double' }}"
         sequence:
           - service: light.turn_on
             target:
               entity_id: "{{ light_entity }}"
             data:
               brightness_pct: 100
-
-      # When light turns ON, sync switch and set LED
-      - conditions: "{{ is_light_on_trigger }}"
-        sequence:
-          - service: input_boolean.turn_on
+          - service: light.turn_on
             target:
-              entity_id: "{{ sync_flag }}"
-          # Get color from light attributes
+              entity_id: "{{ switch_entity }}"
+          - service: mqtt.publish
+            data:
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+              payload: '{"ledIntensityWhenOn": 100}'
+
+      # -------------------------------------------------------------------------
+      # DOUBLE TAP DOWN: Set brightness to 10%.
+      # LED intensity is hardcoded to 10 for immediate feedback.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action == 'down_double' }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: "{{ light_entity }}"
+            data:
+              brightness_pct: 10
+          - service: light.turn_on
+            target:
+              entity_id: "{{ switch_entity }}"
+          - service: mqtt.publish
+            data:
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+              payload: '{"ledIntensityWhenOn": 10}'
+
+      # -------------------------------------------------------------------------
+      # HOLD (UP or DOWN): Inline dimming loop.
+      # Runs until mode:restart kills it when the release event fires.
+      # LED intensity is updated each step to reflect current brightness.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action in ['up_held', 'down_held'] }}"
+        sequence:
+          - repeat:
+              sequence:
+                - service: light.turn_on
+                  target:
+                    entity_id: "{{ light_entity }}"
+                  data:
+                    brightness_step_pct: "{{ brightness_step_signed }}"
+                - delay:
+                    milliseconds: 400
+                - variables:
+                    current_brightness: >
+                      {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
+                - service: mqtt.publish
+                  data:
+                    topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+                    payload: '{"ledIntensityWhenOn": {{ current_brightness }}}'
+              until:
+                # Loop runs forever — mode:restart terminates it when release fires
+                - condition: template
+                  value_template: "false"
+
+      # -------------------------------------------------------------------------
+      # CONFIG PRESS: Cycle scenes forward.
+      # After activation, waits for the light to settle then updates LED.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action == 'config_single' and scene_index_helper != '' and available_scenes | length > 0 }}"
+        sequence:
+          - variables:
+              current: "{{ states(scene_index_helper) | int(0) }}"
+              next: "{{ (current + 1) % (available_scenes | length) }}"
+              next_scene: "{{ available_scenes[next] }}"
+          - service: input_number.set_value
+            data:
+              entity_id: "{{ scene_index_helper }}"
+              value: "{{ next }}"
+          - service: scene.turn_on
+            target:
+              entity_id: "{{ next_scene }}"
+          - delay:
+              milliseconds: 500
+          - variables:
+              scene_color: >
+                {% set s = states[light_entity] %}
+                {% if s.attributes.hs_color is defined %}
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
+                {% endif %}
+              scene_intensity: >
+                {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
+          - service: mqtt.publish
+            data:
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+              payload: >
+                {
+                  "ledColorWhenOn": {{ scene_color }},
+                  "ledIntensityWhenOn": {{ scene_intensity }}
+                }
+
+      # -------------------------------------------------------------------------
+      # CONFIG HOLD: Cycle scenes backward.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ action == 'config_held' and scene_index_helper != '' and available_scenes | length > 0 }}"
+        sequence:
+          - variables:
+              current: "{{ states(scene_index_helper) | int(0) }}"
+              prev: "{{ (current - 1) % (available_scenes | length) }}"
+              prev_scene: "{{ available_scenes[prev] }}"
+          - service: input_number.set_value
+            data:
+              entity_id: "{{ scene_index_helper }}"
+              value: "{{ prev }}"
+          - service: scene.turn_on
+            target:
+              entity_id: "{{ prev_scene }}"
+          - delay:
+              milliseconds: 500
+          - variables:
+              scene_color: >
+                {% set s = states[light_entity] %}
+                {% if s.attributes.hs_color is defined %}
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
+                {% endif %}
+              scene_intensity: >
+                {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
+          - service: mqtt.publish
+            data:
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+              payload: >
+                {
+                  "ledColorWhenOn": {{ scene_color }},
+                  "ledIntensityWhenOn": {{ scene_intensity }}
+                }
+
+      # -------------------------------------------------------------------------
+      # LIGHT TURNED ON (Hue app, HA, or another automation):
+      # Sync the switch, update LED to match the light's color and brightness,
+      # and optionally activate a default scene.
+      #
+      # Important: LED update and default scene run BEFORE the switch is turned on.
+      # This prevents a cascade restart from the switch_on trigger from skipping them.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'light_on' }}"
+        sequence:
+          # Wait briefly for Hue to report its settled color/brightness
+          - delay:
+              milliseconds: 300
           - variables:
               room_color: >
                 {% set s = states[light_entity] %}
-                {% if 'hs_color' in s.attributes %}
-                  # Map Hue value (0-360) directly to Inovelli range (0-255)
+                {% if s.attributes.hs_color is defined %}
                   {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
                 {% else %}
-                  # Default warm white
                   24
                 {% endif %}
-              led_intensity: "{{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | round(0) | int }}"
-          # Set LED color and intensity via MQTT for Z2M devices
+              led_intensity: >
+                {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
           - service: mqtt.publish
             data:
-              topic: "zigbee2mqtt/{{ mqtt_entity }}/set"
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
               payload: >
                 {
-                  "led_color_on": {{ room_color }},
-                  "led_brightness_on": {{ led_intensity }}
+                  "ledColorWhenOn": {{ room_color }},
+                  "ledIntensityWhenOn": {{ led_intensity }}
                 }
-          # Optionally activate default scene
           - choose:
               - conditions: "{{ default_scene_enabled and default_scene != '' }}"
                 sequence:
                   - service: scene.turn_on
                     target:
                       entity_id: "{{ default_scene }}"
-
-      - conditions: "{{ is_light_off_trigger }}"
-        sequence:
-          - service: input_boolean.turn_off
+          # Switch is turned on last — may trigger switch_on → restart, which is harmless
+          - service: light.turn_on
             target:
-              entity_id: "{{ sync_flag }}"
-          # Add LED off color settings via MQTT
+              entity_id: "{{ switch_entity }}"
+
+      # -------------------------------------------------------------------------
+      # LIGHT TURNED OFF (Hue app, HA, or another automation):
+      # Update LED to off state, then turn off the switch.
+      # LED is updated before switch to survive a potential restart.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'light_off' }}"
+        sequence:
           - service: mqtt.publish
             data:
-              topic: "zigbee2mqtt/{{ mqtt_entity }}/set"
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
               payload: >
                 {
-                  "led_color_off": {{ switch_led_off_color }},
-                  "led_brightness_off": 1
+                  "ledColorWhenOff": {{ switch_led_off_color }},
+                  "ledIntensityWhenOff": 1
                 }
+          - service: light.turn_off
+            target:
+              entity_id: "{{ switch_entity }}"
 
-      - conditions: "{{ is_switch_state_change }}"
+      # -------------------------------------------------------------------------
+      # SWITCH TURNED ON (from HA UI or another automation):
+      # Sync the Hue light on. Skipped if light is already on to prevent loops.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'switch_on' and states(light_entity) != 'on' }}"
         sequence:
-          - choose:
-              - conditions: "{{ states(switch_entity) == 'on' }}"
-                sequence:
-                  - service: input_boolean.turn_on
-                    target:
-                      entity_id: "{{ sync_flag }}"
-              - conditions: "{{ states(switch_entity) == 'off' }}"
-                sequence:
-                  - service: input_boolean.turn_off
-                    target:
-                      entity_id: "{{ sync_flag }}"
+          - service: light.turn_on
+            target:
+              entity_id: "{{ light_entity }}"
 
-      - conditions: "{{ is_button_3_press }}"
+      # -------------------------------------------------------------------------
+      # SWITCH TURNED OFF (from HA UI or another automation):
+      # Sync the Hue light off. Skipped if light is already off to prevent loops.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'switch_off' and states(light_entity) != 'off' }}"
         sequence:
-          - choose:
-              - conditions: "{{ available_scenes | length == 0 }}"
-                sequence:
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "❌ No scenes found for '{{ room_lower }}'"
-              - conditions: "{{ states(scene_index) == 'unknown' }}"
-                sequence:
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "❌ Missing input_number: {{ scene_index }}"
-              - conditions: []
-                sequence:
-                  - variables:
-                      current: "{{ states(scene_index) | int(0) }}"
-                      next: "{{ (current + 1) % (available_scenes | length) }}"
-                      next_scene: "{{ available_scenes[next] }}"
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "🔄 FORWARD: current={{ current }} | next={{ next }} | max_scenes={{ available_scenes | length }} | next_scene={{ next_scene }}"
-                  - service: input_number.set_value
-                    data:
-                      entity_id: "{{ scene_index }}"
-                      value: "{{ next }}"
-                  - wait_template: "{{ states(scene_index) | int(0) == next }}"
-                    timeout: 
-                      seconds: 2
-                  - service: scene.turn_on
-                    target:
-                      entity_id: "{{ next_scene }}"
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "✅ FORWARD COMPLETE: Activated {{ next_scene }}"
-
-      - conditions: "{{ is_button_3_hold }}"
-        sequence:
-          - choose:
-              - conditions: "{{ available_scenes | length == 0 }}"
-                sequence:
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "❌ No scenes found for '{{ room_lower }}'"
-              - conditions: "{{ states(scene_index) == 'unknown' }}"
-                sequence:
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "❌ Missing input_number: {{ scene_index }}"
-              - conditions: []
-                sequence:
-                  - variables:
-                      current: "{{ states(scene_index) | int(0) }}"
-                      prev: "{{ (current - 1) % (available_scenes | length) }}"
-                      prev_scene: "{{ available_scenes[prev] }}"
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "🔄 BACKWARD: current={{ current }} | prev={{ prev }} | max_scenes={{ available_scenes | length }} | prev_scene={{ prev_scene }}"
-                  - service: input_number.set_value
-                    data:
-                      entity_id: "{{ scene_index }}"
-                      value: "{{ prev }}"
-                  - wait_template: "{{ states(scene_index) | int(0) == prev }}"
-                    timeout:
-                      seconds: 2
-                  - service: scene.turn_on
-                    target:
-                      entity_id: "{{ prev_scene }}"
-                  - service: system_log.write
-                    data:
-                      level: debug
-                      message: "✅ BACKWARD COMPLETE: Activated {{ prev_scene }}"
-
-      - conditions: "{{ is_light_state_change and states(light_entity) == 'on' }}"
-        sequence:
-          - variables:
-              room_color: >
-                {% set s = states[light_entity] %}
-                {% if 'hs_color' in s.attributes %}
-                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
-                {% else %}
-                  24
-                {% endif %}
-              led_intensity: >
-                {% set s = states[light_entity] %}
-                {{ ((s.attributes.brightness | default(255)) / 255 * 100) | int }}
-          - service: mqtt.publish
-            data:
-              topic: "zigbee2mqtt/{{ mqtt_entity }}/set"
-              payload: >
-                {
-                  "led_color_on": {{ room_color }},
-                  "led_brightness_on": {{ led_intensity }}
-                }
-
-  - choose:
-      - conditions: "{{ states(sync_flag) == 'on' }}"
-        sequence:
-          - choose:
-              - conditions: "{{ states(light_entity) != 'on' }}"
-                sequence:
-                  - service: light.turn_on
-                    target:
-                      entity_id: "{{ light_entity }}"
-          - choose:
-              - conditions: "{{ states(switch_entity) != 'on' }}"
-                sequence:
-                  - service: light.turn_on
-                    target:
-                      entity_id: "{{ switch_entity }}"
-
-      - conditions: "{{ states(sync_flag) == 'off' }}"
-        sequence:
-          - choose:
-              - conditions: "{{ states(light_entity) != 'off' }}"
-                sequence:
-                  - service: light.turn_off
-                    target:
-                      entity_id: "{{ light_entity }}"
-          - choose:
-              - conditions: "{{ states(switch_entity) != 'off' }}"
-                sequence:
-                  - service: light.turn_off
-                    target:
-                      entity_id: "{{ switch_entity }}"
+          - service: light.turn_off
+            target:
+              entity_id: "{{ light_entity }}"
 
 mode: restart

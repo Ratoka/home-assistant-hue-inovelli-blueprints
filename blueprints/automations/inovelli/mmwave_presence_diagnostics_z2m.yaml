@@ -1,0 +1,335 @@
+blueprint:
+  name: mmWave Presence Diagnostics (VZM32-SN, Z2M)
+  description: |-
+    Diagnostic automation for troubleshooting mmWave false positives on the Inovelli
+    Blue Series VZM32-SN (Zigbee2MQTT). Sends detailed notifications on each presence
+    event, showing which detection zones (Areas 1–4) triggered and how long the
+    detection lasted.
+
+    Use the output to identify which zones are causing false positives, then add
+    Interference Areas in Zigbee2MQTT to suppress those coordinates.
+
+    ✅ Reports which of the 4 detection areas triggered at the moment of detection
+    ✅ Reports detection duration when presence clears — short durations flag false positives
+    ✅ Creates persistent in-HA notifications — no mobile app required
+    ✅ Optional: forward to any Home Assistant notify service (mobile app, etc.)
+    ✅ Disable the automation once zone tuning is complete
+
+    ── Companion visualizer tool ─────────────────────────────────────────────────
+    For deeper analysis, use the Python visualizer in tools/mmwave_visualizer/:
+
+      pip install -r tools/mmwave_visualizer/requirements.txt
+      python tools/mmwave_visualizer/app.py
+      → Open http://localhost:8050
+
+    The visualizer:
+      • Queries HA history for the last 24 hours via the REST API
+      • Renders your 4 detection zones as interactive 3D boxes relative to
+        the switch face (enter the same X/Y/Z bounds configured in Z2M)
+      • Shows a gantt-style timeline of all presence events per area
+      • Lets you drag-zoom on the timeline to select a false-positive window,
+        then generates Interference Area JSON and MQTT commands automatically
+
+    ── How to use ────────────────────────────────────────────────────────────────
+    1. Install and configure this automation for each VZM32-SN.
+    2. Leave the room and wait for a false positive notification.
+    3. Note which Area numbers (1–4) are flagged as DETECTED.
+    4. In Zigbee2MQTT → device → Configure, add an Interference Area covering
+       the X/Y/Z coordinates of that zone.
+    5. Repeat until false positives are eliminated, then disable this automation.
+
+    ── Enabling per-area sensors ─────────────────────────────────────────────────
+    Area 1–4 occupancy sensors require the manuSpecificInovelliMMWave cluster to be
+    bound in Zigbee2MQTT. In the Z2M device page → Bind tab, add the cluster
+    "manuSpecificInovelliMMWave" to Source endpoint 1. The Area 1–4 entities will
+    then appear in Home Assistant. If not yet bound, only overall Occupancy is
+    reported and the per-area inputs below can be left unselected.
+
+    ── Auto-generate interference area ───────────────────────────────────────────
+    The VZM32-SN supports an Auto-generate Interference Area command (Control ID 0x01)
+    that automatically captures the current target's coordinates as Interference Area 0.
+    This can be triggered via MQTT while a false positive is actively occurring,
+    letting the sensor learn the zone without you manually entering coordinates.
+
+    ── Zone coordinate system ────────────────────────────────────────────────────
+    Coordinates are in centimetres, relative to the switch face:
+      X  left (−) ↔ right (+) when looking at the switch from the room
+      Y  0 at the switch face, increasing into the room (depth)
+      Z  down (−) ↔ up (+)
+
+    Room presets:
+      Small  → X ±100 cm, Y 0–200 cm, Z ±100 cm
+      Medium → X ±160 cm, Y 0–280 cm, Z ±100 cm
+      Large  → X ±210 cm, Y 0–360 cm, Z ±100 cm
+
+    All coordinates accept values from −600 to 600 cm for custom configurations.
+
+  domain: automation
+
+  input:
+    occupancy_sensor:
+      name: Occupancy Sensor
+      description: >
+        The main occupancy binary sensor for the VZM32-SN (Zigbee2MQTT).
+        This is the primary presence entity — all detection events are driven
+        by state changes on this entity.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: occupancy
+
+    area1_sensor:
+      name: Area 1 Occupancy (Optional)
+      description: >
+        Per-zone occupancy sensor for Detection Area 1. Requires the
+        manuSpecificInovelliMMWave cluster to be bound in Z2M (see description
+        above). Leave unselected if not yet available.
+      default: ""
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: occupancy
+
+    area2_sensor:
+      name: Area 2 Occupancy (Optional)
+      description: >
+        Per-zone occupancy sensor for Detection Area 2.
+        Leave unselected if not available.
+      default: ""
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: occupancy
+
+    area3_sensor:
+      name: Area 3 Occupancy (Optional)
+      description: >
+        Per-zone occupancy sensor for Detection Area 3.
+        Leave unselected if not available.
+      default: ""
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: occupancy
+
+    area4_sensor:
+      name: Area 4 Occupancy (Optional)
+      description: >
+        Per-zone occupancy sensor for Detection Area 4.
+        Leave unselected if not available.
+      default: ""
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: occupancy
+
+    location_label:
+      name: Location Label
+      description: >
+        A short label for this sensor's location (e.g. "Living Room", "Office").
+        Included in notification titles to distinguish multiple automations running
+        for different switches simultaneously.
+      default: "mmWave Sensor"
+      selector:
+        text:
+
+    notify_service:
+      name: Additional Notify Service (Optional)
+      description: >
+        An optional Home Assistant notify service to also receive diagnostics
+        (e.g. "mobile_app_my_phone", "slack"). Enter only the service name
+        without the "notify." prefix. Leave blank to use the in-HA persistent
+        notification panel only.
+      default: ""
+      selector:
+        text:
+
+    notify_on_clear:
+      name: Notify When Presence Clears
+      description: >
+        Send a follow-up notification when presence changes from detected to
+        clear, including the total detection duration. Short durations (a few
+        seconds) in an empty room are the clearest indicator of a false positive.
+      default: true
+      selector:
+        boolean:
+
+trigger:
+  # Fires when the sensor reports presence (on = detected).
+  - platform: state
+    entity_id: !input occupancy_sensor
+    to: "on"
+    id: detected
+
+  # Fires when the sensor reports no presence (off = clear).
+  - platform: state
+    entity_id: !input occupancy_sensor
+    to: "off"
+    id: cleared
+
+variables:
+  occupancy_sensor: !input occupancy_sensor
+  area1_sensor: !input area1_sensor
+  area2_sensor: !input area2_sensor
+  area3_sensor: !input area3_sensor
+  area4_sensor: !input area4_sensor
+  location_label: !input location_label
+  notify_service: !input notify_service
+  notify_on_clear: !input notify_on_clear
+
+action:
+  - choose:
+
+      # -----------------------------------------------------------------------
+      # DETECTED: Capture zone state and send a diagnostic notification.
+      # -----------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'detected' }}"
+        sequence:
+          - variables:
+              detection_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+              # Build a per-area status line for each of the 4 detection areas.
+              # Areas not configured show as "(not configured)".
+              # Areas whose entity is "on" at trigger time show as DETECTED.
+              area_report: >
+                {% set ns = namespace(lines=[]) %}
+                {% set areas = [
+                    ('Area 1', area1_sensor),
+                    ('Area 2', area2_sensor),
+                    ('Area 3', area3_sensor),
+                    ('Area 4', area4_sensor)
+                  ] %}
+                {% for name, entity in areas %}
+                  {% if entity == '' %}
+                    {% set ns.lines = ns.lines + [name ~ ': (not configured)'] %}
+                  {% elif states(entity) == 'on' %}
+                    {% set ns.lines = ns.lines + [name ~ ': DETECTED ⚠'] %}
+                  {% else %}
+                    {% set ns.lines = ns.lines + [name ~ ': clear'] %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.lines | join('\n') }}
+
+              # Count how many areas are flagged, used to tailor the advice below.
+              detected_area_count: >
+                {% set ns = namespace(count=0) %}
+                {% for entity in [area1_sensor, area2_sensor, area3_sensor, area4_sensor] %}
+                  {% if entity != '' and states(entity) == 'on' %}
+                    {% set ns.count = ns.count + 1 %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.count }}
+
+              # True if at least one area sensor has been configured.
+              any_area_configured: >
+                {{ area1_sensor != '' or area2_sensor != ''
+                   or area3_sensor != '' or area4_sensor != '' }}
+
+          # Persistent notification visible in the HA notification panel.
+          # Uses a fixed notification_id so each new detection replaces the
+          # previous one, keeping the panel tidy.
+          - service: persistent_notification.create
+            data:
+              notification_id: "mmwave_diag_detected_{{ occupancy_sensor | replace('.', '_') }}"
+              title: "Presence Detected — {{ location_label }}"
+              message: >
+                Time: {{ detection_time }}
+
+                Zone Status:
+                {{ area_report }}
+
+                {% if not any_area_configured %}
+                Note: no area sensors are configured. Bind the cluster
+                "manuSpecificInovelliMMWave" to Source endpoint 1 in the
+                Zigbee2MQTT Bind tab to enable per-area reporting.
+                {% elif detected_area_count | int == 0 %}
+                Note: main occupancy triggered but no individual area shows
+                DETECTED. The active zone may have cleared by the time this
+                ran, or the per-area sensors may not be fully bound yet.
+                {% else %}
+                If this is a false positive, add an Interference Area in
+                Zigbee2MQTT → device → Configure, covering the coordinates
+                of the DETECTED zone(s) above. Alternatively, trigger the
+                Auto-generate Interference Area command (Control ID 0x01)
+                via MQTT while the false positive is actively occurring.
+                {% endif %}
+
+          # Forward to additional notify service if one is configured.
+          - if: "{{ notify_service != '' }}"
+            then:
+              - service: "notify.{{ notify_service }}"
+                data:
+                  title: "Presence Detected — {{ location_label }}"
+                  message: >
+                    Detected at {{ detection_time }}.
+
+                    Zone status:
+                    {{ area_report }}
+
+      # -----------------------------------------------------------------------
+      # CLEARED: Report detection duration when presence ends.
+      # Short durations in an empty room are the clearest sign of a false
+      # positive that warrants an Interference Area.
+      # -----------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'cleared' and notify_on_clear }}"
+        sequence:
+          - variables:
+              clear_time: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+              # Duration the occupancy sensor was in the "on" (detected) state.
+              # trigger.from_state.last_changed is when the entity last entered
+              # its previous state (i.e. when it became "on").
+              duration_seconds: >
+                {{ (now() - trigger.from_state.last_changed).total_seconds() | int }}
+
+              duration_display: >
+                {% set secs = (now() - trigger.from_state.last_changed).total_seconds() | int %}
+                {% set m = secs // 60 %}
+                {% set s = secs % 60 %}
+                {% if m > 0 %}{{ m }}m {{ s }}s{% else %}{{ s }}s{% endif %}
+
+              # Plain-language characterisation to guide the user.
+              duration_note: >
+                {% set secs = (now() - trigger.from_state.last_changed).total_seconds() | int %}
+                {% if secs < 10 %}
+                Very short ({{ secs }}s) — almost certainly a false positive.
+                {% elif secs < 30 %}
+                Short ({{ secs }}s) — likely a false positive if the room was empty.
+                {% elif secs < 120 %}
+                Moderate ({{ secs }}s) — possible false positive; verify the room was empty.
+                {% else %}
+                Long ({{ secs }}s) — likely a genuine detection.
+                {% endif %}
+
+          - service: persistent_notification.create
+            data:
+              notification_id: "mmwave_diag_cleared_{{ occupancy_sensor | replace('.', '_') }}"
+              title: "Presence Cleared — {{ location_label }}"
+              message: >
+                Cleared at: {{ clear_time }}
+                Duration:   {{ duration_display }}
+
+                Assessment: {{ duration_note }}
+
+                To suppress a false positive:
+                • Add an Interference Area in Z2M → device → Configure
+                  covering the X/Y/Z coordinates of the false trigger zone.
+                • Or, trigger the Auto-generate Interference Area command
+                  (Control ID 0x01) via MQTT while the false positive is active.
+                • Refer to the Presence Detected notification for which Area
+                  number was active during this detection event.
+
+          - if: "{{ notify_service != '' }}"
+            then:
+              - service: "notify.{{ notify_service }}"
+                data:
+                  title: "Presence Cleared — {{ location_label }}"
+                  message: >
+                    Cleared at {{ clear_time }}.
+                    Duration: {{ duration_display }}.
+                    {{ duration_note }}
+
+# queued: each rapid on/off toggle generates its own notification rather
+# than being overwritten. max: 10 prevents unbounded queue growth.
+mode: queued
+max: 10

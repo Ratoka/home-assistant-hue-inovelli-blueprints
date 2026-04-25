@@ -1,0 +1,53 @@
+# helpers_zha.yaml — Helper entities for Hue + Inovelli Blue integration (ZHA)
+#
+# The ZHA automation blueprint requires the following helper entities per room:
+#   - input_boolean.dimmer_<room>      : Controls the dimming loop (required)
+#   - input_boolean.sync_<room>        : Prevents sync trigger loops (required)
+#   - input_number.scene_index_<room>  : Tracks active Hue scene (required for scene cycling)
+#
+# The separate ZHA dimmer script blueprint must also be deployed and referenced
+# from the automation.
+#
+# Add to your configuration.yaml (or a file included by it).
+
+input_boolean:
+
+  # ── Bedroom ──────────────────────────────────────────────────────────────────
+  dimmer_bedroom:
+    name: Dimmer - Bedroom
+    icon: mdi:lightbulb-on-outline
+
+  sync_bedroom:
+    name: Sync - Bedroom
+    icon: mdi:sync
+
+  # ── Office ───────────────────────────────────────────────────────────────────
+  dimmer_office:
+    name: Dimmer - Office
+    icon: mdi:lightbulb-on-outline
+
+  sync_office:
+    name: Sync - Office
+    icon: mdi:sync
+
+input_number:
+
+  # ── Bedroom ──────────────────────────────────────────────────────────────────
+  scene_index_bedroom:
+    name: Scene Index - Bedroom
+    initial: 0
+    min: 0
+    max: 99
+    step: 1
+    mode: box
+    icon: mdi:order-numeric-ascending
+
+  # ── Office ───────────────────────────────────────────────────────────────────
+  scene_index_office:
+    name: Scene Index - Office
+    initial: 0
+    min: 0
+    max: 99
+    step: 1
+    mode: box
+    icon: mdi:order-numeric-ascending

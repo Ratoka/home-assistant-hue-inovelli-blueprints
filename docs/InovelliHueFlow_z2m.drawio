@@ -1,0 +1,302 @@
+<mxfile host="app.diagrams.net" version="28.0.4">
+  <diagram name="Z2M Flow" id="z2m_automation_flow">
+    <mxGraphModel dx="1274" dy="885" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             TITLE
+        ════════════════════════════════════════════════════════════════ -->
+        <mxCell id="title" value="Inovelli Blue + Philips Hue — Z2M Automation Flow" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="15" width="750" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             COLUMN HEADERS
+        ════════════════════════════════════════════════════════════════ -->
+        <mxCell id="hdr-physical" value="Physical" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=center;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="130" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-z2m" value="Zigbee2MQTT / MQTT" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=center;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-ha" value="Home Assistant Automation" style="text;html=1;strokeColor=#6c8ebf;fillColor=#dae8fc;align=center;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="60" width="330" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr-hue" value="Hue Integration" style="text;html=1;strokeColor=#82b366;fillColor=#d5e8d4;align=center;verticalAlign=middle;fontStyle=1;fontSize=10;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="750" y="60" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             COLUMN DIVIDERS (background lanes)
+        ════════════════════════════════════════════════════════════════ -->
+        <mxCell id="lane-physical" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#cccccc;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="30" y="55" width="150" height="750" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-z2m" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffde7;strokeColor=#cccccc;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="190" y="55" width="180" height="750" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-ha" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f4fd;strokeColor=#cccccc;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="380" y="55" width="350" height="750" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-hue" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f9f0;strokeColor=#cccccc;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="740" y="55" width="170" height="750" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             ROW 1 — MAIN DEVICES
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Inovelli Switch -->
+        <mxCell id="switch" value="&lt;b&gt;Inovelli Blue Switch&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#647687;strokeColor=#314354;fontColor=#ffffff;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="45" y="105" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Z2M Bridge -->
+        <mxCell id="z2m-bridge" value="&lt;b&gt;Zigbee2MQTT Bridge&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d6b656;strokeColor=#9e7c00;fontColor=#000000;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="205" y="105" width="150" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- HA Automation -->
+        <mxCell id="automation" value="&lt;b&gt;HA Automation Blueprint&lt;/b&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;hue_dimmer_z2m.yaml&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1ba1e2;strokeColor=#006EAF;fontColor=#ffffff;fontSize=10;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="420" y="105" width="270" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Hue Room -->
+        <mxCell id="hue-room" value="&lt;b&gt;Hue Room / Zone&lt;/b&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;light.&lt;room&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#82b366;strokeColor=#4d7a34;fontColor=#ffffff;fontSize=10;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="758" y="105" width="140" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             ROW 2 — MQTT / SENSOR
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Button actions (physical) -->
+        <mxCell id="btn-actions" value="Button Actions&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;up/down single, double,&lt;br/&gt;held, release, config&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="45" y="215" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- MQTT Broker -->
+        <mxCell id="mqtt-broker" value="&lt;b&gt;MQTT Broker&lt;/b&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;zigbee2mqtt/&lt;device&gt;/action&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="205" y="215" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Automation triggers summary -->
+        <mxCell id="triggers-box" value="&lt;b&gt;Triggers&lt;/b&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;· z2m action sensor state&lt;br/&gt;· light.&lt;room&gt; on → off / off → on&lt;br/&gt;· switch entity on ↔ off&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;align=left;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="395" y="210" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Freshness condition -->
+        <mxCell id="condition-box" value="&lt;b&gt;Condition&lt;/b&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;Action fresh (&lt; 30 s)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="615" y="215" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Hue Scenes -->
+        <mxCell id="hue-scenes" value="Hue Scenes&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;scene.&lt;room&gt;_*&lt;br/&gt;(auto-discovered)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="758" y="215" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             ROW 3 — ACTION SENSOR
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- MQTT Action Sensor -->
+        <mxCell id="mqtt-sensor" value="&lt;b&gt;sensor.&lt;device&gt;_action&lt;/b&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;Custom MQTT sensor&lt;br/&gt;expire_after: 1 (recommended)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="205" y="335" width="150" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             ROW 4 — ACTION HANDLERS
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- On / Off -->
+        <mxCell id="act-onoff" value="On / Off&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;up_single / down_single&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="395" y="430" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Double Tap -->
+        <mxCell id="act-double" value="100% / 10%&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;up_double / down_double&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="530" y="430" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Hold Dim -->
+        <mxCell id="act-dim" value="Dim Loop&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;up_held / down_held&lt;br/&gt;(inline, mode:restart)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="665" y="430" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Scene Cycling -->
+        <mxCell id="act-scene" value="Scene Cycling&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;config_single / config_held&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="395" y="500" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Bidirectional Sync -->
+        <mxCell id="act-sync" value="Bidirectional Sync&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;light_on / light_off&lt;br/&gt;switch_on / switch_off&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="530" y="500" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Default Scene -->
+        <mxCell id="act-default-scene" value="Default Scene&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;(optional, on turn-on)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="665" y="500" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             ROW 5 — OUTPUTS & HELPERS
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Switch LED Entity -->
+        <mxCell id="switch-entity" value="light.&lt;switch&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;Switch on/off state&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="45" y="620" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- LED MQTT Publish -->
+        <mxCell id="led-publish" value="LED Color + Intensity&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;mqtt.publish&lt;br/&gt;zigbee2mqtt/&lt;device&gt;/set&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="205" y="620" width="150" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Scene Index Helper (optional) -->
+        <mxCell id="scene-helper" value="&lt;font style=&quot;font-size:8px;&quot;&gt;input_number.scene_index_&lt;room&gt;&lt;/font&gt;&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;Optional — scene cycling only&lt;br/&gt;min:0, max:99, step:1&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;fontSize=9;arcSize=15;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="395" y="620" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Hue App -->
+        <mxCell id="hue-app" value="Hue App&lt;br/&gt;&lt;font style=&quot;font-size:8px;&quot;&gt;External light changes&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;fontSize=9;arcSize=15;" vertex="1" parent="1">
+          <mxGeometry x="758" y="620" width="140" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             EDGES — MAIN FORWARD PATH
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Switch → Z2M Bridge (Zigbee) -->
+        <mxCell id="e-sw-z2m" value="Zigbee" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="switch" target="z2m-bridge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Z2M Bridge → MQTT Broker (action topics) -->
+        <mxCell id="e-z2m-mqtt" value="action topics" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="z2m-bridge" target="mqtt-broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- MQTT Broker → MQTT Sensor -->
+        <mxCell id="e-mqtt-sensor" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="mqtt-broker" target="mqtt-sensor">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- MQTT Sensor → Automation (trigger) -->
+        <mxCell id="e-sensor-ha" value="state trigger" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="mqtt-sensor" target="triggers-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Automation → Hue Room (light.turn_on/off) -->
+        <mxCell id="e-ha-hue" value="light.turn_on/off" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="automation" target="hue-room">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Automation → Action Handlers (down) -->
+        <mxCell id="e-ha-handlers" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="automation" target="act-onoff">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="390" />
+              <mxPoint x="455" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Scene Cycling → Hue Scenes -->
+        <mxCell id="e-scene-hue" value="scene.turn_on" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="act-scene" target="hue-scenes">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="522" />
+              <mxPoint x="730" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             EDGES — LED CONTROL (MQTT publish)
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Automation → LED Publish (MQTT) -->
+        <mxCell id="e-ha-led" value="ledColor/Intensity" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="automation" target="led-publish">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="140" />
+              <mxPoint x="380" y="632" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- LED Publish → Switch Entity -->
+        <mxCell id="e-led-sw" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="led-publish" target="switch-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             EDGES — BIDIRECTIONAL SYNC
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Hue Room → Automation (state trigger, sync) -->
+        <mxCell id="e-hue-ha-sync" value="state trigger (sync)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0;exitY=0.7;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;" edge="1" parent="1" source="hue-room" target="automation">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="730" y="145" />
+              <mxPoint x="720" y="145" />
+              <mxPoint x="720" y="118" />
+              <mxPoint x="690" y="118" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Hue App → Hue Room -->
+        <mxCell id="e-app-hue" value="changes light" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=block;endFill=1;" edge="1" parent="1" source="hue-app" target="hue-room">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Switch Entity → Automation (state trigger, sync) -->
+        <mxCell id="e-sw-ha-sync" value="state trigger (sync)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.9;entryDx=0;entryDy=0;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;" edge="1" parent="1" source="switch-entity" target="automation">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="185" y="643" />
+              <mxPoint x="185" y="720" />
+              <mxPoint x="555" y="720" />
+              <mxPoint x="555" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             EDGES — OPTIONAL HELPER
+        ════════════════════════════════════════════════════════════════ -->
+
+        <!-- Scene Helper → Scene Cycling action -->
+        <mxCell id="e-helper-scene" value="scene index" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;strokeColor=#b85450;" edge="1" parent="1" source="scene-helper" target="act-scene">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             LEGEND
+        ════════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="45" y="735" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-solid" value="Required flow" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;endArrow=block;endFill=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="45" y="765" as="sourcePoint" />
+            <mxPoint x="110" y="765" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-dashed" value="State sync / optional" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=9;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="45" y="790" as="sourcePoint" />
+            <mxPoint x="110" y="790" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-optional-box" value="Optional helper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;fontSize=8;arcSize=15;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+          <mxGeometry x="120" y="778" width="100" height="24" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

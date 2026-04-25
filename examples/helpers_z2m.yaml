@@ -1,0 +1,67 @@
+# helpers_z2m.yaml — Required and optional configuration for Hue + Inovelli Blue (Z2M)
+#
+# ── REQUIRED: Custom MQTT action sensor ──────────────────────────────────────
+# Newer versions of Zigbee2MQTT do not expose an action sensor in Home Assistant
+# by default. You must create a custom MQTT sensor manually.
+#
+# expire_after: 1 is important — it resets the sensor to unavailable after 1 second,
+# allowing repeated presses of the same button action (e.g. config_single twice)
+# to re-trigger the automation each time.
+#
+# Add the mqtt: block below to your configuration.yaml (or a file included by it).
+# The state_topic must match your Z2M device's MQTT topic exactly (case-sensitive).
+# Restart Home Assistant after adding the sensor.
+#
+# ── OPTIONAL: Scene cycling helper ───────────────────────────────────────────
+# The input_number below is only needed if you want scene cycling via the Config
+# button. Leave it out (and leave the Scene Index Helper unselected in the blueprint)
+# to disable scene cycling entirely.
+#
+# Add to your configuration.yaml (or a file included by it):
+#
+#   homeassistant:
+#     packages: !include_dir_named packages/
+#
+# Or paste each section directly into your configuration.yaml under the
+# corresponding top-level key.
+
+# ── MQTT action sensors (one per switch) ─────────────────────────────────────
+mqtt:
+  sensor:
+
+    # Bedroom switch — replace "bedroom_switch" with your Z2M device friendly name
+    # (the name shown in the Zigbee2MQTT dashboard, case-sensitive).
+    - name: "bedroom_switch_action"
+      state_topic: "zigbee2mqtt/bedroom_switch/action"
+      icon: mdi:access-point
+      expire_after: 1
+
+    # Office switch
+    - name: "office_switch_action"
+      state_topic: "zigbee2mqtt/office_switch/action"
+      icon: mdi:access-point
+      expire_after: 1
+
+# ── Scene cycling helpers (one per room, optional) ───────────────────────────
+input_number:
+
+  # Bedroom — tracks the currently active Hue scene index (0-based).
+  # Scenes are discovered automatically via the scene.bedroom_* prefix.
+  scene_index_bedroom:
+    name: Scene Index - Bedroom
+    initial: 0
+    min: 0
+    max: 99
+    step: 1
+    mode: box
+    icon: mdi:order-numeric-ascending
+
+  # Office
+  scene_index_office:
+    name: Scene Index - Office
+    initial: 0
+    min: 0
+    max: 99
+    step: 1
+    mode: box
+    icon: mdi:order-numeric-ascending

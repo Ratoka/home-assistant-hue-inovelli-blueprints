@@ -1,0 +1,219 @@
+blueprint:
+  name: Shower Humidity Fan Control (VZM35-SN, Z2M)
+  description: |-
+    Automatically controls a bathroom exhaust fan (Inovelli Blue Series VZM35-SN via
+    Zigbee2MQTT) based on room humidity levels.
+
+    ✅ Turns fan on when humidity rises above the On Threshold
+    ✅ Optional: requires room humidity to exceed a reference sensor by a configured
+       delta — prevents false triggers on naturally humid or rainy days
+    ✅ Minimum run time prevents short cycling (fan stays on even if humidity drops quickly)
+    ✅ Configurable off delay clears residual moisture after humidity normalises
+    ✅ Re-checks humidity before turning off to confirm conditions are still met
+
+    ── How it works ──────────────────────────────────────────────────────────────────
+    Shower starts → room humidity rises above On Threshold (and above reference + delta
+    if a reference sensor is configured) → fan turns on → shower ends → humidity falls
+    → fan waits for minimum run time → fan waits off delay → fan turns off.
+
+    ── Threshold guidance ────────────────────────────────────────────────────────────
+    Set the On Threshold above your normal resting humidity (e.g. 70 % if your bathroom
+    sits at ~55 % normally). Set the Off Threshold lower than On Threshold to create
+    hysteresis and prevent rapid cycling (e.g. on at 70 %, off at 60 %).
+
+    ── Reference sensor guidance ─────────────────────────────────────────────────────
+    A hallway, bedroom, or outdoor sensor works well as a reference. If the reference
+    sensor is unavailable at trigger time the delta check is skipped and the fan turns
+    on based on the absolute threshold alone.
+
+  domain: automation
+
+  input:
+    fan_entity:
+      name: Fan Entity
+      description: >
+        The fan entity for the Inovelli VZM35-SN switch (via Zigbee2MQTT).
+        This is the entity that controls the fan on/off and speed.
+      selector:
+        entity:
+          domain: fan
+          integration: mqtt
+
+    humidity_sensor:
+      name: Room Humidity Sensor
+      description: >
+        The humidity sensor installed in the bathroom or room where the fan is located.
+        This sensor drives all fan on/off decisions.
+      selector:
+        entity:
+          domain: sensor
+          device_class: humidity
+
+    reference_sensor:
+      name: Reference Humidity Sensor (Optional)
+      description: >
+        A second humidity sensor used to gauge ambient humidity conditions — for
+        example a sensor in an adjacent room, hallway, or outdoors.
+        When provided, the fan only turns on if the room humidity exceeds this
+        sensor's reading by at least the Humidity Delta configured below.
+        This prevents the fan from triggering on naturally humid or rainy days.
+        If this sensor is unavailable at trigger time, the delta check is skipped
+        and the fan turns on based on the absolute On Threshold alone.
+        Leave unselected to rely on the On Threshold only.
+      default: ""
+      selector:
+        entity:
+          domain: sensor
+          device_class: humidity
+
+    on_threshold:
+      name: Humidity On Threshold (%)
+      description: >
+        Room humidity percentage that triggers the fan to turn on.
+        Set this above your typical resting humidity level (e.g. 70 %).
+        If a Reference Sensor is configured, the room must also exceed it
+        by the Humidity Delta before the fan turns on.
+      default: 70
+      selector:
+        number:
+          min: 50
+          max: 95
+          step: 1
+          unit_of_measurement: "%"
+
+    humidity_delta:
+      name: Humidity Delta Above Reference (%)
+      description: >
+        Only used when a Reference Humidity Sensor is configured.
+        The room sensor must read at least this many percent above the reference
+        before the fan turns on. Prevents false triggers when outdoor or ambient
+        humidity is already elevated.
+        Example: reference = 65 %, delta = 8 % → fan triggers only when room ≥ 73 %.
+      default: 8
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
+          unit_of_measurement: "%"
+
+    off_threshold:
+      name: Humidity Off Threshold (%)
+      description: >
+        Room humidity percentage below which the fan becomes eligible to turn off.
+        Must be lower than the On Threshold to create hysteresis and prevent rapid
+        cycling (e.g. on at 70 %, off at 60 %).
+        The fan will not turn off until this threshold is crossed AND both the
+        minimum run time and off delay have elapsed.
+      default: 60
+      selector:
+        number:
+          min: 40
+          max: 90
+          step: 1
+          unit_of_measurement: "%"
+
+    min_run_minutes:
+      name: Minimum Run Time (minutes)
+      description: >
+        The fan runs for at least this many minutes after turning on, even if
+        humidity drops below the Off Threshold quickly. Ensures effective
+        moisture removal.
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 60
+          step: 1
+          unit_of_measurement: "min"
+
+    off_delay_minutes:
+      name: Off Delay After Humidity Drops (minutes)
+      description: >
+        Additional minutes the fan continues running after humidity drops below
+        the Off Threshold (and after the minimum run time has elapsed). Allows
+        the fan to clear any residual moisture.
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 1
+          unit_of_measurement: "min"
+
+trigger:
+  # Fan turns on when room humidity crosses the on threshold upward.
+  - platform: numeric_state
+    entity_id: !input humidity_sensor
+    above: !input on_threshold
+    id: humidity_high
+
+  # Fan turn-off sequence begins when room humidity crosses the off threshold downward.
+  - platform: numeric_state
+    entity_id: !input humidity_sensor
+    below: !input off_threshold
+    id: humidity_low
+
+variables:
+  fan_entity: !input fan_entity
+  humidity_sensor: !input humidity_sensor
+  reference_sensor: !input reference_sensor
+  on_threshold: !input on_threshold
+  humidity_delta: !input humidity_delta
+  off_threshold: !input off_threshold
+  min_run_minutes: !input min_run_minutes
+  off_delay_minutes: !input off_delay_minutes
+
+action:
+  - choose:
+
+      # -------------------------------------------------------------------------
+      # HUMIDITY HIGH: Turn on the fan.
+      # Passes unconditionally if no reference sensor is configured.
+      # With a reference sensor: room must exceed it by at least humidity_delta.
+      # If the reference sensor is unavailable its reading is treated as 0,
+      # so the delta check passes and the fan turns on (fail-safe).
+      # -------------------------------------------------------------------------
+      - conditions: >
+          {{ trigger.id == 'humidity_high' and
+             (reference_sensor == '' or
+              (states(humidity_sensor) | float(0) - states(reference_sensor) | float(0)) >= (humidity_delta | float)) }}
+        sequence:
+          - service: fan.turn_on
+            target:
+              entity_id: "{{ fan_entity }}"
+
+      # -------------------------------------------------------------------------
+      # HUMIDITY LOW: Turn off fan after minimum run time + off delay.
+      # Only runs if the fan is currently on (prevents spurious actions).
+      # Waits for any remaining minimum run time before starting the off delay.
+      # Re-checks humidity before actually turning the fan off — if the
+      # humidity has risen again the fan stays on.
+      # mode: restart means a new humidity_high trigger cancels this sequence
+      # and turns the fan back on, which is the desired behaviour.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'humidity_low' and states(fan_entity) == 'on' }}"
+        sequence:
+          # Calculate how long the fan has already been running and wait for
+          # any remaining minimum run time before proceeding.
+          - variables:
+              fan_on_seconds: >
+                {{ (now() - states[fan_entity].last_changed).total_seconds() | int }}
+              remaining_min_run_seconds: >
+                {{ [(min_run_minutes | int * 60) - fan_on_seconds, 0] | max }}
+          - delay:
+              seconds: "{{ remaining_min_run_seconds }}"
+          # Additional off delay to clear residual moisture.
+          - delay:
+              minutes: "{{ off_delay_minutes }}"
+          # Re-check: only turn off if humidity is still below the off threshold.
+          - condition: numeric_state
+            entity_id: !input humidity_sensor
+            below: !input off_threshold
+          - service: fan.turn_off
+            target:
+              entity_id: "{{ fan_entity }}"
+
+# restart: a new humidity_high trigger while the off sequence is waiting
+# will cancel the wait and turn the fan on again immediately.
+mode: restart
