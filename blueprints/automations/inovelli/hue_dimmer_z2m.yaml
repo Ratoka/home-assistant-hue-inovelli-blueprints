@@ -151,6 +151,22 @@ trigger:
     to: "off"
     id: light_off
 
+  # Light attribute changes while on — catches Hue app scene changes when already on.
+  # 800ms debounce prevents firing during hold dimming (step interval is 400ms).
+  - platform: state
+    entity_id: !input light_entity
+    attribute: brightness
+    for:
+      milliseconds: 800
+    id: light_settled
+
+  - platform: state
+    entity_id: !input light_entity
+    attribute: color_temp_kelvin
+    for:
+      milliseconds: 800
+    id: light_settled
+
   # Switch entity state changes — used for bidirectional sync
   - platform: state
     entity_id: !input switch_entity
@@ -323,10 +339,12 @@ action:
               scene_color: >
                 {% set s = states[light_entity] %}
                 {% if s.attributes.color_temp_kelvin is not none %}
-                  {% set ratio = (s.attributes.color_temp_kelvin - 2000) / (6535 - 2000) %}
-                  {{ (ratio * 146 + 24) | int }}
-                {% else %}
+                  {% set ct = s.attributes.color_temp_kelvin | float %}
+                  {{ 24 if ct <= 4000 else 170 }}
+                {% elif s.attributes.hs_color is not none %}
                   {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
                 {% endif %}
               scene_intensity: >
                 {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
@@ -361,10 +379,12 @@ action:
               scene_color: >
                 {% set s = states[light_entity] %}
                 {% if s.attributes.color_temp_kelvin is not none %}
-                  {% set ratio = (s.attributes.color_temp_kelvin - 2000) / (6535 - 2000) %}
-                  {{ (ratio * 146 + 24) | int }}
-                {% else %}
+                  {% set ct = s.attributes.color_temp_kelvin | float %}
+                  {{ 24 if ct <= 4000 else 170 }}
+                {% elif s.attributes.hs_color is not none %}
                   {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
                 {% endif %}
               scene_intensity: >
                 {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
@@ -394,10 +414,12 @@ action:
               room_color: >
                 {% set s = states[light_entity] %}
                 {% if s.attributes.color_temp_kelvin is not none %}
-                  {% set ratio = (s.attributes.color_temp_kelvin - 2000) / (6535 - 2000) %}
-                  {{ (ratio * 146 + 24) | int }}
-                {% else %}
+                  {% set ct = s.attributes.color_temp_kelvin | float %}
+                  {{ 24 if ct <= 4000 else 170 }}
+                {% elif s.attributes.hs_color is not none %}
                   {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
                 {% endif %}
               led_intensity: >
                 {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
@@ -438,6 +460,37 @@ action:
           - service: light.turn_off
             target:
               entity_id: "{{ switch_entity }}"
+
+      # -------------------------------------------------------------------------
+      # LIGHT ATTRIBUTE SETTLED (scene changed while light was already on):
+      # Fires 800ms after brightness or color_temp_kelvin stabilizes, catching
+      # Hue app scene activations that don't produce an off→on state transition.
+      # Also acts as a reliable backup for config button scene cycling in case
+      # the 500ms delay in those handlers preceded Hue reporting its settled state.
+      # -------------------------------------------------------------------------
+      - conditions: "{{ trigger.id == 'light_settled' and states(light_entity) == 'on' }}"
+        sequence:
+          - variables:
+              room_color: >
+                {% set s = states[light_entity] %}
+                {% if s.attributes.color_temp_kelvin is not none %}
+                  {% set ct = s.attributes.color_temp_kelvin | float %}
+                  {{ 24 if ct <= 4000 else 170 }}
+                {% elif s.attributes.hs_color is not none %}
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% else %}
+                  24
+                {% endif %}
+              led_intensity: >
+                {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
+          - service: mqtt.publish
+            data:
+              topic: "zigbee2mqtt/{{ z2m_device_name }}/set"
+              payload: >
+                {
+                  "ledColorWhenOn": {{ room_color }},
+                  "ledIntensityWhenOn": {{ led_intensity }}
+                }
 
       # -------------------------------------------------------------------------
       # SWITCH TURNED ON (from HA UI or another automation):
