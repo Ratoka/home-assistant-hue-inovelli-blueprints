@@ -322,10 +322,11 @@ action:
           - variables:
               scene_color: >
                 {% set s = states[light_entity] %}
-                {% if s.attributes.hs_color is defined %}
-                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% if s.attributes.color_temp_kelvin is not none %}
+                  {% set ratio = (s.attributes.color_temp_kelvin - 2000) / (6535 - 2000) %}
+                  {{ (ratio * 146 + 24) | int }}
                 {% else %}
-                  24
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
                 {% endif %}
               scene_intensity: >
                 {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
@@ -359,10 +360,11 @@ action:
           - variables:
               scene_color: >
                 {% set s = states[light_entity] %}
-                {% if s.attributes.hs_color is defined %}
-                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% if s.attributes.color_temp_kelvin is not none %}
+                  {% set ratio = (s.attributes.color_temp_kelvin - 2000) / (6535 - 2000) %}
+                  {{ (ratio * 146 + 24) | int }}
                 {% else %}
-                  24
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
                 {% endif %}
               scene_intensity: >
                 {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
@@ -391,10 +393,11 @@ action:
           - variables:
               room_color: >
                 {% set s = states[light_entity] %}
-                {% if s.attributes.hs_color is defined %}
-                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
+                {% if s.attributes.color_temp_kelvin is not none %}
+                  {% set ratio = (s.attributes.color_temp_kelvin - 2000) / (6535 - 2000) %}
+                  {{ (ratio * 146 + 24) | int }}
                 {% else %}
-                  24
+                  {{ (s.attributes.hs_color[0] / 360 * 255) | int }}
                 {% endif %}
               led_intensity: >
                 {{ ((states[light_entity].attributes.brightness | default(255) | float / 255) * 100) | int }}
