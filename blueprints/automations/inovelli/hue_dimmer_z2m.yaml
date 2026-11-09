@@ -190,6 +190,20 @@ condition:
       - condition: template
         value_template: "{{ (now() - trigger.to_state.last_changed).total_seconds() < 30 }}"
 
+  # Drop triggers that would do nothing BEFORE they reach the action.
+  # With mode: restart, every trigger that passes these conditions cancels the
+  # running sequence, even if no choose branch then matches. Turning a Hue light
+  # off also changes its brightness/color_temp_kelvin attributes, so light_settled
+  # fires right after light_off and used to cancel it before the switch was
+  # turned off. Conditions are evaluated before the restart, so filtering here
+  # lets the in-flight sequence finish.
+  - condition: template
+    value_template: "{{ trigger.id != 'light_settled' or is_state(light_entity, 'on') }}"
+  - condition: template
+    value_template: "{{ trigger.id != 'switch_on' or not is_state(light_entity, 'on') }}"
+  - condition: template
+    value_template: "{{ trigger.id != 'switch_off' or not is_state(light_entity, 'off') }}"
+
 variables:
   light_entity: !input light_entity
   switch_entity: !input switch_entity
@@ -467,6 +481,8 @@ action:
       # Hue app scene activations that don't produce an off→on state transition.
       # Also acts as a reliable backup for config button scene cycling in case
       # the 500ms delay in those handlers preceded Hue reporting its settled state.
+      # Also turns the switch on if it is off: a light_settled restart can cancel
+      # the light_on handler during its 300ms delay, before it syncs the switch.
       # -------------------------------------------------------------------------
       - conditions: "{{ trigger.id == 'light_settled' and states(light_entity) == 'on' }}"
         sequence:
@@ -491,6 +507,11 @@ action:
                   "ledColorWhenOn": {{ room_color }},
                   "ledIntensityWhenOn": {{ led_intensity }}
                 }
+          - if: "{{ not is_state(switch_entity, 'on') }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: "{{ switch_entity }}"
 
       # -------------------------------------------------------------------------
       # SWITCH TURNED ON (from HA UI or another automation):

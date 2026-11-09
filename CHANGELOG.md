@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file, following [
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- Z2M: switch no longer stayed on when the Hue light was turned off from the Hue app or elsewhere. Turning a Hue light off also changes its `brightness`/`color_temp_kelvin` attributes, so the `light_settled` trigger fired right after `light_off` and, under `mode: restart`, cancelled it before the switch was turned off. Triggers that would do nothing (`light_settled` while the light is off, `switch_on`/`switch_off` when the light already matches) are now dropped in the top-level `condition:` block, which runs before the restart.
+- Z2M: `light_settled` now also turns the switch on if it is off, in case a restart cancelled the `light_on` handler during its 300 ms delay.
+
+---
+
 ## [0.1.1] - 2025-06-29
 
 ### Added
