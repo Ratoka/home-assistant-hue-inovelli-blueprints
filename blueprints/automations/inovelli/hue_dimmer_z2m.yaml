@@ -481,8 +481,9 @@ action:
       # Hue app scene activations that don't produce an off→on state transition.
       # Also acts as a reliable backup for config button scene cycling in case
       # the 500ms delay in those handlers preceded Hue reporting its settled state.
-      # Also turns the switch on if it is off: a light_settled restart can cancel
-      # the light_on handler during its 300ms delay, before it syncs the switch.
+      # Updates the LED only; it must never turn the switch on. When the paddle
+      # turns the light off, Hue can report a brightness change while the light is
+      # still "on", so light_settled can fire just before light_off arrives.
       # -------------------------------------------------------------------------
       - conditions: "{{ trigger.id == 'light_settled' and states(light_entity) == 'on' }}"
         sequence:
@@ -507,11 +508,6 @@ action:
                   "ledColorWhenOn": {{ room_color }},
                   "ledIntensityWhenOn": {{ led_intensity }}
                 }
-          - if: "{{ not is_state(switch_entity, 'on') }}"
-            then:
-              - service: light.turn_on
-                target:
-                  entity_id: "{{ switch_entity }}"
 
       # -------------------------------------------------------------------------
       # SWITCH TURNED ON (from HA UI or another automation):

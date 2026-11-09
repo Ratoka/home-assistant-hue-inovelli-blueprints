@@ -9,7 +9,7 @@
 - LED update and default scene run **before** switch turn-on in `light_on` handler to avoid being killed by the subsequent `switch_on` restart
 - `switch_on` and `switch_off` handlers have state checks (`states(light_entity) != 'on'`) to prevent loops
 - No-op triggers are filtered in the **top-level `condition:`** (evaluated before `mode: restart` cancels the running run), not only inside `choose`. A Hue light turning off also changes `brightness`/`color_temp_kelvin`, so an unfiltered `light_settled` cancels `light_off` before the switch is turned off
-- `light_settled` also turns the switch on if off (self-heals a `light_on` run cancelled during its 300ms delay)
+- `light_settled` only updates the LED and must never turn the switch on. v0.2.0 added a switch-on "self-heal" there; on a paddle-off press Hue reported a brightness change while still `on`, `light_settled` fired just before `light_off`, turned the switch back on, and `switch_on` turned the light back on (removed in 0.2.1)
 - Z2M action freshness condition (`< 30s`) prevents spurious triggers after HA restart
 - MQTT payload for LED uses Z2M property names: `ledColorWhenOn`, `ledIntensityWhenOn`, `ledColorWhenOff`, `ledIntensityWhenOff`
 

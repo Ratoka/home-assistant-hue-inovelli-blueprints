@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file, following [
 
 ---
 
+## [0.2.1] - 2026-11-09
+
+### Fixed
+- Z2M: turning the light off at the switch could turn it straight back on. Hue can report a brightness change while the light is still on, so `light_settled` fired just before `light_off` and the switch turn-on added to it in 0.2.0 turned the switch, and then the light, back on. `light_settled` now only updates the LED.
+
+---
+
 ## [0.2.0] - 2026-11-08
 
 ### Added
