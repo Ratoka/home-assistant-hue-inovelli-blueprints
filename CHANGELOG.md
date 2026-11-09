@@ -4,11 +4,25 @@ All notable changes to this project will be documented in this file, following [
 
 ---
 
-## [Unreleased]
+## [0.2.0] - 2026-11-08
+
+### Added
+- Zigbee2MQTT version of the dimmer blueprint (`hue_dimmer_z2m.yaml`) and a Z2M dimming script, alongside the ZHA versions (2026-02-06).
+- ZHA: double tap up/down sets brightness to 100% / 10% (2025-07-25).
+- ZHA: switch LED color follows the light's color (2025-10-19).
+- ZHA: switch and Hue light state stay in sync in both directions (2025-07-11).
+- Updated flow diagram in `docs/` (2025-07-12).
+
+### Changed
+- ZHA dimming script renamed `dim_hue_room_lights.yaml` → `dim_hue_room_lights_zha.yaml` (2026-02-06/09).
+- README corrections and fixed import links (2025-07-12/13); blueprint descriptions and YAML formatting tidied (2026-02-09).
 
 ### Fixed
 - Z2M: switch no longer stayed on when the Hue light was turned off from the Hue app or elsewhere. Turning a Hue light off also changes its `brightness`/`color_temp_kelvin` attributes, so the `light_settled` trigger fired right after `light_off` and, under `mode: restart`, cancelled it before the switch was turned off. Triggers that would do nothing (`light_settled` while the light is off, `switch_on`/`switch_off` when the light already matches) are now dropped in the top-level `condition:` block, which runs before the restart.
 - Z2M: `light_settled` now also turns the switch on if it is off, in case a restart cancelled the `light_on` handler during its 300 ms delay.
+- Z2M: switch LED stays in sync with the light, and warm/cool color temperatures map to the right LED color (2026-04-25).
+- Z2M: MQTT topic handling and other Z2M bugs (2026-02-07 to 2026-04-25).
+- ZHA: LED intensity (2025-10-19).
 
 ---
 
